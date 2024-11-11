@@ -28,12 +28,12 @@ Bone Segmentation은 인공지능 분야에서 중요한 응용 분야 중 하�
 
 <table align="center">
     <tr align="center">
-        <td><img src="" width="140" height="140"></td>
-        <td><img src="" width="140" height="140"></td>
-        <td><img src="" width="140" height="140"></td>
-        <td><img src="" width="140" height="140"></td>
-        <td><img src="" width="140" height="140"></td>
-        <td><img src="" width="140" height="140"></td>
+        <td><img src="" width="200" height="120"></td>
+        <td><img src="" width="200" height="120"></td>
+        <td><img src="https://github.com/user-attachments/assets/dcd46b40-5117-437c-a8a0-8217cffcb487" width="200" height="120"></td>
+        <td><img src="https://github.com/user-attachments/assets/9b936eca-2463-48d2-b01b-3196761e738e" width="200" height="120"></td>
+        <td><img src="https://github.com/user-attachments/assets/4a8f05bf-9635-47f7-b90e-39bb7c6f6824" width="200" height="120"></td>
+        <td><img src="https://github.com/user-attachments/assets/78c78353-ba3b-494d-ba94-429c4f838cd1" width="200" height="120"></td>
     </tr>
     <tr align="center">
         <td><a href="https://github.com/minrongtic" target="_blank">김민영</a></td>

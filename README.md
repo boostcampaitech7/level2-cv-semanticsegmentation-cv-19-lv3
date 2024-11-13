@@ -14,12 +14,31 @@ Bone Segmentation은 인공지능 분야에서 중요한 응용 분야 중 하�
 - 의료장비 제작에 필요한 정보를 제공합니다. 예를 들어, 인공 관절이나 치아 임플란트를 제작할 때 뼈 구조를 분석하여 적절한 크기와 모양을 결정할 수 있습니다.
 
 - 의료 교육에서도 활용될 수 있습니다. 의사들은 병태 및 부상에 대한 이해를 높이고 수술 계획을 개발하는 데 필요한 기술을 연습할 수 있습니다.
+<br/>
 
+
+- Input :
+
+hand bone x-ray 객체가 담긴 이미지가 모델의 인풋으로 사용됩니다. segmentation annotation은 json file로 제공됩니다.
+
+- Output :
+
+모델은 각 클래스(29개)에 대한 확률 맵을 갖는 멀티채널 예측을 수행하고, 이를 기반으로 각 픽셀을 해당 클래스에 할당합니다.
+최종적으로 예측된 결과를 Run-Length Encoding(RLE) 형식으로 변환하여 csv 파일로 제출합니다.
+
+<br/>
 <br/>
 
 # 🗃️ Dataset
 
-추후수정예정
+- 이미지 크기 : (2048 x 2048), 3 channel
+
+![image](https://github.com/user-attachments/assets/7a596f2c-e7e2-415f-872a-d812a7b47825)
+
+-  image, target 시각화 및 pixel 별로 예측해야할 29개의 classes
+  
+![image](https://github.com/user-attachments/assets/3474aac7-4542-4437-ad49-514a9dd72212)
+
 <br/>
 <br/>
 <br/>

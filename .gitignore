@@ -1,0 +1,23 @@
+# 모델 checkpoint 제외
+*.pt
+*.pkl
+*.pth
+
+
+# 결과 파일 제외
+*.csv
+
+# python cache 제외
+__pycache__
+*.pyc
+*.pyd
+
+# dataset 제외
+*.jpg
+*.png
+*.json
+*.tar.gz
+*.xlsx
+
+#wandb
+wandb/

@@ -12,7 +12,6 @@ import torch.optim as optim
 from torch.utils.data import DataLoader
 from torchvision import models
 from dataset import XRayDataset
-
 from argparse import ArgumentParser
 
 def parse_args():

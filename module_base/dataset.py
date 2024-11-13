@@ -100,7 +100,7 @@ class XRayDataset(Dataset):
         
         image = torch.from_numpy(image).float()
         label = torch.from_numpy(label).float()
-            
+        
         return image, label
 
 class XRayInferenceDataset(Dataset):

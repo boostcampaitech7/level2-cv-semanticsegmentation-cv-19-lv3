@@ -118,6 +118,9 @@ def train(model, train_loader, valid_loader, criterion, optimizer, save_dir, ran
     
     n_class = len(CLASSES)
     best_dice = 0.
+
+    # GradScaler를 사용해 Mixed Precision Training을 설정
+    scaler = torch.cuda.amp.GradScaler()
     
     for epoch in range(max_epoch):
         model.train()
@@ -127,13 +130,25 @@ def train(model, train_loader, valid_loader, criterion, optimizer, save_dir, ran
             images, masks = images.cuda(), masks.cuda()
             model = model.cuda()
             
-            outputs = model(images)['out']
+            # outputs = model(images)['out']
+            # outputs = model(images)
             
             # loss를 계산합니다.
-            loss = criterion(outputs, masks)
+            # loss = criterion(outputs, masks)
+            # optimizer.zero_grad()
+            # loss.backward()
+            # optimizer.step()
+
+            # Mixed Precision Training 적용
+            with torch.cuda.amp.autocast():
+                outputs = model(images)
+                loss = criterion(outputs, masks)
+            
+            # 스케일된 loss를 사용해 backward 및 optimizer step
             optimizer.zero_grad()
-            loss.backward()
-            optimizer.step()
+            scaler.scale(loss).backward()
+            scaler.step(optimizer)
+            scaler.update()
             
             # step 주기에 따라 loss를 출력합니다.
             if (step + 1) % 25 == 0:
@@ -146,6 +161,8 @@ def train(model, train_loader, valid_loader, criterion, optimizer, save_dir, ran
                 
         # validation 주기에 따라 loss를 출력하고 best model을 저장합니다.
         if (epoch + 1) % val_every == 0:
+            # 캐시된 메모리를 해제하여 PyTorch의 메모리 누수를 방지
+            torch.cuda.empty_cache()
             dice = validation(epoch + 1, model, valid_loader, criterion)
             
             if best_dice < dice:

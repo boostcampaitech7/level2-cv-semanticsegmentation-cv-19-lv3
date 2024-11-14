@@ -12,6 +12,7 @@ import torch.optim as optim
 from torch.utils.data import DataLoader
 from torchvision import models
 from dataset import XRayDataset
+from model import ModelSelector
 from argparse import ArgumentParser
 
 def parse_args():
@@ -24,15 +25,17 @@ def parse_args():
                         help='Path to the root directory containing labels')
     parser.add_argument('--save_dir', type=str, default="/data/ephemeral/home/data/result",
                         help='Path to the root directory containing save direction')
-    parser.add_argument('--batch_size', type=int, default=8)
+    parser.add_argument('--batch_size', type=int, default=1)
     parser.add_argument('--learning_rate', type=float, default=1e-4)
-    parser.add_argument('--max_epoch', type=int, default=30)
+    parser.add_argument('--max_epoch', type=int, default=1)
     parser.add_argument('--val_every', type=int, default=5)
-    parser.add_argument('--random_seed', type=int, default=21)
+    parser.add_argument('--random_seed', type=int, default=2024)
+    parser.add_argument('--model_type', type=str, default='smp')
+    parser.add_argument('--model_name', type=str, default='efficientnet-b0')
+    parser.add_argument('--encoder_weights', type=str, default='imagenet')
     args = parser.parse_args()
     
     return args
-
 
 CLASSES = [
     'finger-1', 'finger-2', 'finger-3', 'finger-4', 'finger-5',
@@ -80,7 +83,8 @@ def validation(epoch, model, data_loader, criterion, thr=0.5):
             images, masks = images.cuda(), masks.cuda()         
             model = model.cuda()
             
-            outputs = model(images)['out']
+            # outputs = model(images)['out']
+            outputs = model(images)
             
             output_h, output_w = outputs.size(-2), outputs.size(-1)
             mask_h, mask_w = masks.size(-2), masks.size(-1)
@@ -141,6 +145,7 @@ def train(model, train_loader, valid_loader, criterion, optimizer, save_dir, ran
 
             # Mixed Precision Training 적용
             with torch.cuda.amp.autocast():
+                # outputs = model(images)['out']
                 outputs = model(images)
                 loss = criterion(outputs, masks)
             
@@ -171,7 +176,8 @@ def train(model, train_loader, valid_loader, criterion, optimizer, save_dir, ran
                 best_dice = dice
                 save_model(model, save_dir)
 
-def do_training(image_root, label_root, save_dir, batch_size, learning_rate, max_epoch, val_every, random_seed):
+def do_training(image_root, label_root, save_dir, batch_size, learning_rate, max_epoch, val_every, random_seed,
+                model_type, model_name, encoder_weights):
     pngs = {
         os.path.relpath(os.path.join(root, fname), start=image_root)
         for root, _dirs, files in os.walk(image_root)
@@ -213,8 +219,14 @@ def do_training(image_root, label_root, save_dir, batch_size, learning_rate, max
         drop_last=False
     )
     
-    model = models.segmentation.fcn_resnet50(pretrained=True)
-
+    model_selector = ModelSelector(
+        model_type=model_type,
+        num_classes=len(CLASSES),
+        model_name=model_name,
+        encoder_weights=encoder_weights,
+    )
+    model = model_selector.get_model()
+    
     # output class 개수를 dataset에 맞도록 수정합니다.
     model.classifier[4] = nn.Conv2d(512, len(CLASSES), kernel_size=1)
 
@@ -226,7 +238,7 @@ def do_training(image_root, label_root, save_dir, batch_size, learning_rate, max
 
     # 시드를 설정합니다.
     set_seed(random_seed)
-
+    
     train(model, train_loader, valid_loader, criterion, optimizer, save_dir, random_seed, max_epoch, val_every)
 
 def main(args):

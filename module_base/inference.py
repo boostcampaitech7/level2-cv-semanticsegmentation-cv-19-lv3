@@ -13,7 +13,7 @@ from dataset import XRayInferenceDataset
 def parse_args():
     parser = ArgumentParser()
     
-    parser.add_argument('--image_root', type=str, default='//data/ephemeral/home/data/test/DCM',
+    parser.add_argument('--image_root', type=str, default='/data/ephemeral/home/data/test/DCM',
                         help='Path to the root directory containing images')
     parser.add_argument('--save_dir', type=str, default="/data/ephemeral/home/data/train/result",
                         help='Path to the root directory containing save direction')

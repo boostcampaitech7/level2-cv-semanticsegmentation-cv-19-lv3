@@ -2,9 +2,9 @@ import streamlit as st
 import load, visualize_v1, visualize_v2, visualize_rle
 import pandas as pd
 
-'''
-streamlit 실행하기 전에 del_ID_dir.py 실행 !!
-'''
+
+#streamlit 실행하기 전에 del_ID_dir.py 실행 !!
+
 
 info = {
     'image_root': "../../data/train/DCM",

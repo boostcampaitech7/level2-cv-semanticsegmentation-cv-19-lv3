@@ -1,8 +1,14 @@
 import streamlit as st
-import load, visualize_v1, visualize_v2
+import load, visualize_v1, visualize_v2, visualize_rle
+import pandas as pd
+
+'''
+streamlit 실행하기 전에 del_ID_dir.py 실행 !!
+'''
 
 info = {
     'image_root': "../../data/train/DCM",
+    'all_image_root': "../../data/test/DCM/all_pngs",
     'label_root': "../../data/train/outputs_json",
     'classes': [
         'finger-1', 'finger-2', 'finger-3', 'finger-4', 'finger-5',
@@ -26,6 +32,12 @@ info = {
         'Pisiform': (145,42,177),
         'Radius': (210,71,77),
         'Ulna': (210,71,77),
+        'Trapezium': (0,85,0),
+        'Capitate': (230,114,61),
+        'Hamate': (196,183,59),
+        'Scaphoid': (120,240,50),
+        'Lunate': (107,102,255),
+        'Triquetrum': (116,116,116),
         'wrist': (193,223,159)
     }
 }
@@ -38,7 +50,7 @@ if "images" not in st.session_state:
 if "labels" not in st.session_state:
     st.session_state.labels = []
 
-option = st.sidebar.radio("option", ["train", "validation", "test"])
+option = st.sidebar.radio("option", ["train", "validation", "test", "RLE Visualization"])
 if option == "train":
     st.session_state.images, st.session_state.labels = load.load(info)
     with st.sidebar.form(key="form"):
@@ -55,3 +67,36 @@ if option == "validation":
     st.write("개발중입니다...")
 if option == "test":
     st.write("개발중입니다...")
+if option == "RLE Visualization":
+    csv_file = st.sidebar.file_uploader("Upload RLE CSV file", type="csv")
+    if csv_file is not None:
+        df = pd.read_csv(csv_file)
+        df['rle'] = df['rle'].fillna('')  # NaN 값을 빈 문자열로 대체
+        # 이미지 이름 목록 생성
+        image_names = df['image_name'].unique()
+        
+        # 현재 이미지 인덱스를 세션 상태로 관리
+        if 'current_image_index' not in st.session_state:
+            st.session_state.current_image_index = 0
+        
+        # 이전 버튼
+        if st.sidebar.button('Previous Image'):
+            st.session_state.current_image_index = max(0, st.session_state.current_image_index - 1)
+        
+        # 다음 버튼
+        if st.sidebar.button('Next Image'):
+            st.session_state.current_image_index = min(len(image_names) - 1, st.session_state.current_image_index + 1)
+        
+        # 현재 이미지 이름 표시
+        current_image = image_names[st.session_state.current_image_index]
+        st.sidebar.write(f"Current Image: {current_image}")
+        
+        # 이미지 인덱스 슬라이더 (옵션)
+        image_index = st.sidebar.slider('Select image index', 0, len(image_names)-1, st.session_state.current_image_index)
+        st.session_state.current_image_index = image_index
+        
+        # 현재 선택된 이미지에 대한 데이터프레임 생성
+        current_df = df[df['image_name'] == current_image]
+        
+        # 시각화 함수 호출
+        visualize_rle.show(info, current_df, 0)

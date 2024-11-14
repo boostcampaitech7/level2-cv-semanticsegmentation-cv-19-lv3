@@ -1,5 +1,5 @@
 import streamlit as st
-import load, visualize_v1, visualize_v2
+import load, visualize
 
 info = {
     'image_root': "../../data/train/DCM",
@@ -45,11 +45,13 @@ if option == "train":
         st.session_state.text = st.selectbox("select text", ["None", "Text"])
         st.session_state.anno = st.selectbox("select annotation", ['All'] + info['classes'])
         submit_button = st.form_submit_button("OK")
+    image_count = st.sidebar.slider('Select image count', 1, 4, 1)
     image_index = st.sidebar.slider('Select image index', 0, len(st.session_state.images)-2, 0)
-    image_index_input = st.sidebar.number_input('Enter image index', min_value=0, max_value=len(st.session_state.images)-2, value=image_index, step=2)
+    image_index_input = st.sidebar.number_input('Enter image index', min_value=0, max_value=len(st.session_state.images)-(2*image_count), value=image_index, step=2*image_count)
     if image_index != image_index_input:
         image_index = image_index_input
-    visualize_v2.show(info, st.session_state.images, st.session_state.labels, image_index, st.session_state.text, st.session_state.anno)
+    for i in range(image_index, image_index + 2 * image_count, 2):
+        visualize.show(info, st.session_state.images, st.session_state.labels, i, st.session_state.text, st.session_state.anno)
 
 if option == "validation":
     st.write("개발중입니다...")

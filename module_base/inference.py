@@ -15,7 +15,7 @@ def parse_args():
     
     parser.add_argument('--image_root', type=str, default='/data/ephemeral/home/data/test/DCM',
                         help='Path to the root directory containing images')
-    parser.add_argument('--save_dir', type=str, default="/data/ephemeral/home/data/train/result",
+    parser.add_argument('--save_dir', type=str, default="/data/ephemeral/home/data/result",
                         help='Path to the root directory containing save direction')
     parser.add_argument('--random_seed', type=int, default=21)
     args = parser.parse_args()
@@ -79,7 +79,8 @@ def test(model, data_loader, thr=0.5):
 
         for step, (images, image_names) in tqdm(enumerate(data_loader), total=len(data_loader)):
             images = images.cuda()    
-            outputs = model(images)['out']
+            # outputs = model(images)['out']
+            outputs = model(images)
             
             outputs = F.interpolate(outputs, size=(2048, 2048), mode="bilinear")
             outputs = torch.sigmoid(outputs)

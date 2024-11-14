@@ -227,9 +227,6 @@ def do_training(image_root, label_root, save_dir, batch_size, learning_rate, max
     )
     model = model_selector.get_model()
     
-    # output class 개수를 dataset에 맞도록 수정합니다.
-    model.classifier[4] = nn.Conv2d(512, len(CLASSES), kernel_size=1)
-
     # Loss function을 정의합니다.
     criterion = nn.BCEWithLogitsLoss()
 

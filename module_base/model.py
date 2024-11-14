@@ -14,7 +14,7 @@ model = model_selector.get_model()
 '''
 
 class TorchvisionModel(nn.Module):
-    def __init__(self, model_name, num_classes, pretrained):
+    def __init__(self, model_name, num_classes, pretrained=True):
         super(TorchvisionModel, self).__init__()
         self.model = models.segmentation.__dict__[model_name](pretrained=pretrained)
         self.model.classifier[-1] = nn.Conv2d(512, num_classes, kernel_size=1)
@@ -50,7 +50,6 @@ class ModelSelector:
             self.model = TorchvisionModel(num_classes=num_classes, **kwargs)
         
         elif model_type == 'smp':
-            pass
             self.model = SMP(num_classes=num_classes, **kwargs)
         
         else:

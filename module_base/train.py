@@ -33,6 +33,7 @@ def parse_args():
     parser.add_argument('--model_type', type=str, default='smp')
     parser.add_argument('--model_name', type=str, default='efficientnet-b0')
     parser.add_argument('--encoder_weights', type=str, default='imagenet')
+    # parser.add_argument('--pretrained', type=str, default='True')
     args = parser.parse_args()
     
     return args
@@ -69,7 +70,7 @@ def save_model(model, save_dir, file_name='fcn_resnet50_best_model.pt'):
     output_path = os.path.join(save_dir, file_name)
     torch.save(model, output_path)
 
-def validation(epoch, model, data_loader, criterion, thr=0.5):
+def validation(epoch, model, data_loader, criterion, model_type, thr=0.5):
     print(f'Start validation #{epoch:2d}')
     model.eval()
 
@@ -83,8 +84,10 @@ def validation(epoch, model, data_loader, criterion, thr=0.5):
             images, masks = images.cuda(), masks.cuda()         
             model = model.cuda()
             
-            # outputs = model(images)['out']
-            outputs = model(images)
+            if model_type == 'torchvision':
+                outputs = model(images)['out']
+            elif model_type == 'smp':
+                outputs = model(images)
             
             output_h, output_w = outputs.size(-2), outputs.size(-1)
             mask_h, mask_w = masks.size(-2), masks.size(-1)
@@ -110,14 +113,14 @@ def validation(epoch, model, data_loader, criterion, thr=0.5):
         f"{c:<12}: {d.item():.4f}"
         for c, d in zip(CLASSES, dices_per_class)
     ]
-    dice_str = "\n".join(dice_str)
+    dice_str = "\n".join(dice_str) 
     print(dice_str)
     
     avg_dice = torch.mean(dices_per_class).item()
     
     return avg_dice
 
-def train(model, train_loader, valid_loader, criterion, optimizer, save_dir, random_seed, max_epoch, val_every):
+def train(model, train_loader, valid_loader, criterion, optimizer, save_dir, random_seed, max_epoch, val_every, model_type):
     print(f'Start training..')
     
     n_class = len(CLASSES)
@@ -134,8 +137,10 @@ def train(model, train_loader, valid_loader, criterion, optimizer, save_dir, ran
             images, masks = images.cuda(), masks.cuda()
             model = model.cuda()
             
-            # outputs = model(images)['out']
-            # outputs = model(images)
+            # if model_type == 'torchvision':
+            #     outputs = model(images)['out']
+            # elif model_type == 'smp':
+            #     outputs = model(images)
             
             # loss를 계산합니다.
             # loss = criterion(outputs, masks)
@@ -145,8 +150,10 @@ def train(model, train_loader, valid_loader, criterion, optimizer, save_dir, ran
 
             # Mixed Precision Training 적용
             with torch.cuda.amp.autocast():
-                # outputs = model(images)['out']
-                outputs = model(images)
+                if model_type == 'torchvision':
+                    outputs = model(images)['out']
+                elif model_type == 'smp':
+                    outputs = model(images)
                 loss = criterion(outputs, masks)
             
             # 스케일된 loss를 사용해 backward 및 optimizer step
@@ -168,7 +175,7 @@ def train(model, train_loader, valid_loader, criterion, optimizer, save_dir, ran
         if (epoch + 1) % val_every == 0:
             # 캐시된 메모리를 해제하여 PyTorch의 메모리 누수를 방지
             torch.cuda.empty_cache()
-            dice = validation(epoch + 1, model, valid_loader, criterion)
+            dice = validation(epoch + 1, model, valid_loader, criterion, model_type)
             
             if best_dice < dice:
                 print(f"Best performance at epoch: {epoch + 1}, {best_dice:.4f} -> {dice:.4f}")
@@ -199,6 +206,13 @@ def do_training(image_root, label_root, save_dir, batch_size, learning_rate, max
         os.makedirs(save_dir)
     
     tf = A.Resize(512, 512)
+    '''
+    ************************************** augmentatoin도 모듈화 할 것 **************************************
+    train_tf = A.Compose([
+        A.Resize(512, 512),      
+        A.HorizontalFlip(p=0.3),
+    ])
+    '''
     
     train_dataset = XRayDataset(pngs, jsons, CLASS2IND, CLASSES, image_root, label_root, is_train=True, transforms=tf)
     valid_dataset = XRayDataset(pngs, jsons, CLASS2IND, CLASSES, image_root, label_root, is_train=False, transforms=tf)
@@ -236,7 +250,7 @@ def do_training(image_root, label_root, save_dir, batch_size, learning_rate, max
     # 시드를 설정합니다.
     set_seed(random_seed)
     
-    train(model, train_loader, valid_loader, criterion, optimizer, save_dir, random_seed, max_epoch, val_every)
+    train(model, train_loader, valid_loader, criterion, optimizer, save_dir, random_seed, max_epoch, val_every, model_type)
 
 def main(args):
     do_training(**args.__dict__)

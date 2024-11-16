@@ -7,7 +7,7 @@ from tqdm import tqdm
 
 # 기본 경로 설정
 input_dir = '/data/ephemeral/home/data'
-output_dir = '/data/ephemeral/home/cityscapes_format_xlay'
+output_dir = '/data/ephemeral/home/cityscapes_format_xlay_kfold'
 n_splits = 5  # GroupKFold의 분할 개수
 
 CLASSES = [
@@ -32,8 +32,15 @@ PALETTE = [
 # 경로 생성
 def create_cityscapes_dirs():
     for split in ['train', 'val', 'test']:
-        os.makedirs(os.path.join(output_dir, 'leftImg8bit', split), exist_ok=True)
-        os.makedirs(os.path.join(output_dir, 'gtFine', split), exist_ok=True)
+        
+        if split == 'test':
+            os.makedirs(os.path.join(output_dir, 'leftImg8bit', split), exist_ok=True)
+            os.makedirs(os.path.join(output_dir, 'gtFine', split), exist_ok=True)
+        
+        else:
+            for fold in range(1, n_splits+1):
+                os.makedirs(os.path.join(output_dir, 'leftImg8bit', split, f"fold_{fold}"), exist_ok=True)
+                os.makedirs(os.path.join(output_dir, 'gtFine', split, f"fold_{fold}"), exist_ok=True)
 
 # JSON 파일을 읽어 label 및 instance 마스크 생성
 def create_masks(json_file, img_shape, label_map):
@@ -114,18 +121,17 @@ def split_and_create_masks(img_paths, json_paths, groups, label_map):
 
                 # 저장 경로 설정
                 base_name = f"{id_folder}_{os.path.splitext(img_filename)[0]}_gtFine"
-                img_output_path = os.path.join(output_dir, 'leftImg8bit', split, f"{id_folder}_{img_filename}")
-                label_output_path = os.path.join(output_dir, 'gtFine', split, f"{base_name}_labelIds.png")
-                instance_output_path = os.path.join(output_dir, 'gtFine', split, f"{base_name}_instanceIds.png")
-                color_output_path = os.path.join(output_dir, 'gtFine', split, f"{base_name}_color.png")
+                img_output_path = os.path.join(output_dir, 'leftImg8bit', split, f"fold_{fold}", f"{id_folder}_{img_filename}")
+                label_output_path = os.path.join(output_dir, 'gtFine', split, f"fold_{fold}", f"{base_name}_labelIds.png")
+                instance_output_path = os.path.join(output_dir, 'gtFine', split, f"fold_{fold}", f"{base_name}_instanceIds.png")
+                color_output_path = os.path.join(output_dir, 'gtFine', split, f"fold_{fold}", f"{base_name}_color.png")
 
                 # 파일 저장
                 img.save(img_output_path)
                 label_mask.save(label_output_path)
                 instance_mask.save(instance_output_path)
                 color_mask.save(color_output_path)
-        
-        break
+                
 
 # 테스트 데이터 복사
 def copy_test_files():

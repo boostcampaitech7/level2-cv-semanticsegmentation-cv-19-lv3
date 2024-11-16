@@ -24,7 +24,6 @@ log_config = dict(
             type='MMSegWandbHook',
             by_epoch=False,
             interval=1,
-            with_step=False,
             init_kwargs=dict(
                 entity='frostings',
                 project='Boost Camp Lv2-3',

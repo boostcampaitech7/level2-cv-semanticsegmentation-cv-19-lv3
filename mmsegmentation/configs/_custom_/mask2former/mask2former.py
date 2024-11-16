@@ -1,14 +1,14 @@
 _base_ = [
-    './xraydata.py',
-    './default_runtime.py', './schedule_160k.py'
+    '../_base_/xraydata.py',
+    '../_base_/default_runtime.py', '../_base_/schedule_160k.py'
 ]
 
-crop_size = _base_.crop_size
+crop_size = (512, 1024)
 load_from = 'https://download.openmmlab.com/mmsegmentation/v0.5/mask2former/mask2former_swin-l-in22k-384x384-pre_8xb2-90k_cityscapes-512x1024/mask2former_swin-l-in22k-384x384-pre_8xb2-90k_cityscapes-512x1024_20221202_141901-28ad20f1.pth'
-# load_from = '/data/ephemeral/home/parkjunil/work_dir/mask2former/iter_12800.pth'
 pretrained = 'https://download.openmmlab.com/mmsegmentation/v0.5/pretrain/swin/swin_large_patch4_window12_384_22k_20220412-6580f57d.pth'
 depths = [2, 2, 18, 2]
 num_classes = 30
+class_weight = [1.0] * 20 + [1.3] * 7 + [1.5] + [1.0] * 2 + [0.1]
 
 
 data_preprocessor = dict(
@@ -116,7 +116,7 @@ model = dict(
             use_sigmoid=False,
             loss_weight=2.0,
             reduction='mean',
-            class_weight=[1.0] * num_classes + [0.1]),
+            class_weight=class_weight),
         loss_mask=dict(
             type='mmdet.CrossEntropyLoss',
             use_sigmoid=True,

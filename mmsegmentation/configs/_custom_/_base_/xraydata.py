@@ -1,9 +1,10 @@
-resize_size = (1748, 1748)
+resize_size = (2048, 2048)
 crop_size = (1536, 1536)
 test_size = (2048, 2048)
 
 dataset_type = 'XRayDataset'
-data_root = '/data/ephemeral/home/cityscapes_format_xlay/'
+data_root = '/data/ephemeral/home/cityscapes_format_xlay_kfold/'
+fold = 2
 
 
 train_pipeline = [
@@ -13,7 +14,7 @@ train_pipeline = [
     #     type='RandomChoiceResize',
     #     scales=[int(1024 * x * 0.1) for x in range(5, 21)],
     #     resize_type='ResizeShortestEdge',
-    #     max_size=4096),
+    #     max_size=1536),
     dict(type='Resize', scale=resize_size, keep_ratio=True),
     dict(type='RandomCrop', crop_size=crop_size, cat_max_ratio=0.75),
     dict(type='RandomFlip', prob=0.5),
@@ -29,7 +30,7 @@ train_dataloader = dict(
     dataset=dict(
         type=dataset_type,
         data_root=data_root,
-        data_prefix=dict(img_path='leftImg8bit/train', seg_map_path='gtFine/train'),
+        data_prefix=dict(img_path=f'leftImg8bit/train/fold_{fold}', seg_map_path=f'gtFine/train/fold_{fold}'),
         img_suffix='.png',
         seg_map_suffix='_gtFine_labelIds.png',
         pipeline=train_pipeline))
@@ -57,7 +58,7 @@ val_dataloader = dict(
     dataset=dict(
         type=dataset_type,
         data_root=data_root,
-        data_prefix=dict(img_path='leftImg8bit/val', seg_map_path='gtFine/val'),
+        data_prefix=dict(img_path=f'leftImg8bit/val/fold_{fold}', seg_map_path=f'gtFine/val/fold_{fold}'),
         img_suffix='.png',
         seg_map_suffix='_gtFine_labelIds.png',
         pipeline=val_pipeline))
@@ -77,8 +78,7 @@ test_dataloader = dict(
 
 val_evaluator = dict(type='DiceMetric')
 test_evaluator = dict(type='SubmissionMetric', save_path = "/data/ephemeral/home/submission")
-# val_evaluator = dict(type='IoUMetric', iou_metrics=['mIoU'])
-# test_evaluator = dict(type='IoUMetric', iou_metrics=['mIoU'])
+
 
 img_ratios = [0.5, 0.75, 1.0, 1.25, 1.5, 1.75]
 tta_pipeline = [

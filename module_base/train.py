@@ -13,6 +13,7 @@ from torch.utils.data import DataLoader
 from torchvision import models
 from dataset import XRayDataset
 from model import ModelSelector
+from transform import TransformSelector
 from argparse import ArgumentParser
 
 def parse_args():
@@ -30,10 +31,10 @@ def parse_args():
     parser.add_argument('--max_epoch', type=int, default=1)
     parser.add_argument('--val_every', type=int, default=5)
     parser.add_argument('--random_seed', type=int, default=2024)
-    parser.add_argument('--model_type', type=str, default='smp')
-    parser.add_argument('--model_name', type=str, default='efficientnet-b0')
-    parser.add_argument('--encoder_weights', type=str, default='imagenet')
-    # parser.add_argument('--pretrained', type=str, default='True')
+    parser.add_argument('--model_type', type=str, default='torchvision')
+    parser.add_argument('--model_name', type=str, default='fcn_resnet101')
+    # parser.add_argument('--encoder_weights', type=str, default='imagenet')
+    parser.add_argument('--pretrained', type=str, default='True')
     args = parser.parse_args()
     
     return args
@@ -46,9 +47,6 @@ CLASSES = [
     'Trapezoid', 'Capitate', 'Hamate', 'Scaphoid', 'Lunate',
     'Triquetrum', 'Pisiform', 'Radius', 'Ulna',
 ]
-
-CLASS2IND = {v: i for i, v in enumerate(CLASSES)}
-IND2CLASS = {v: k for k, v in CLASS2IND.items()}
 
 def dice_coef(y_true, y_pred):
     y_true_f = y_true.flatten(2)
@@ -66,7 +64,7 @@ def set_seed(random_seed):
     np.random.seed(random_seed)
     random.seed(random_seed)
 
-def save_model(model, save_dir, file_name='fcn_resnet50_best_model.pt'):
+def save_model(model, save_dir, file_name='best_model.pt'):
     output_path = os.path.join(save_dir, file_name)
     torch.save(model, output_path)
 
@@ -76,7 +74,7 @@ def validation(epoch, model, data_loader, criterion, model_type, thr=0.5):
 
     dices = []
     with torch.no_grad():
-        n_class = len(CLASSES)
+        # n_class = len(CLASSES)
         total_loss = 0
         cnt = 0
 
@@ -123,7 +121,7 @@ def validation(epoch, model, data_loader, criterion, model_type, thr=0.5):
 def train(model, train_loader, valid_loader, criterion, optimizer, save_dir, random_seed, max_epoch, val_every, model_type):
     print(f'Start training..')
     
-    n_class = len(CLASSES)
+    # n_class = len(CLASSES)
     best_dice = 0.
 
     # GradScaler를 사용해 Mixed Precision Training을 설정
@@ -184,7 +182,7 @@ def train(model, train_loader, valid_loader, criterion, optimizer, save_dir, ran
                 save_model(model, save_dir)
 
 def do_training(image_root, label_root, save_dir, batch_size, learning_rate, max_epoch, val_every, random_seed,
-                model_type, model_name, encoder_weights):
+                model_type, model_name, pretrained):
     pngs = {
         os.path.relpath(os.path.join(root, fname), start=image_root)
         for root, _dirs, files in os.walk(image_root)
@@ -205,17 +203,13 @@ def do_training(image_root, label_root, save_dir, batch_size, learning_rate, max
     if not os.path.exists(save_dir):
         os.makedirs(save_dir)
     
-    tf = A.Resize(512, 512)
-    '''
-    ************************************** augmentatoin도 모듈화 할 것 **************************************
-    train_tf = A.Compose([
-        A.Resize(512, 512),      
-        A.HorizontalFlip(p=0.3),
-    ])
-    '''
-    
-    train_dataset = XRayDataset(pngs, jsons, CLASS2IND, CLASSES, image_root, label_root, is_train=True, transforms=tf)
-    valid_dataset = XRayDataset(pngs, jsons, CLASS2IND, CLASSES, image_root, label_root, is_train=False, transforms=tf)
+    train_trans = TransformSelector('albumentation')
+    val_trans = TransformSelector('albumentation')
+    train_tf = train_trans.get_transform(True, 512)
+    val_tf = val_trans.get_transform(False, 512)
+
+    train_dataset = XRayDataset(pngs, jsons, CLASSES, image_root, label_root, is_train=True, transforms=train_tf)
+    valid_dataset = XRayDataset(pngs, jsons, CLASSES, image_root, label_root, is_train=False, transforms=val_tf)
     
     train_loader = DataLoader(
         dataset=train_dataset, 
@@ -237,7 +231,8 @@ def do_training(image_root, label_root, save_dir, batch_size, learning_rate, max
         model_type=model_type,
         num_classes=len(CLASSES),
         model_name=model_name,
-        encoder_weights=encoder_weights,
+        # encoder_weights=encoder_weights,
+        pretrained=pretrained
     )
     model = model_selector.get_model()
     

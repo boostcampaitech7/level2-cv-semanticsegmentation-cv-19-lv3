@@ -76,7 +76,7 @@ def test(model, data_loader, model_type, thr=0.5):
     rles = []
     filename_and_class = []
     with torch.no_grad():
-        n_class = len(CLASSES)
+        # n_class = len(CLASSES)
 
         for step, (images, image_names) in tqdm(enumerate(data_loader), total=len(data_loader)):
             images = images.cuda()  

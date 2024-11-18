@@ -7,8 +7,19 @@ import torch
 from torch.utils.data import Dataset
 from sklearn.model_selection import GroupKFold
 
+CLASSES = [
+    'finger-1', 'finger-2', 'finger-3', 'finger-4', 'finger-5',
+    'finger-6', 'finger-7', 'finger-8', 'finger-9', 'finger-10',
+    'finger-11', 'finger-12', 'finger-13', 'finger-14', 'finger-15',
+    'finger-16', 'finger-17', 'finger-18', 'finger-19', 'Trapezium',
+    'Trapezoid', 'Capitate', 'Hamate', 'Scaphoid', 'Lunate',
+    'Triquetrum', 'Pisiform', 'Radius', 'Ulna',
+]
+
+CLASS2IND = {v: i for i, v in enumerate(CLASSES)}
+
 class XRayDataset(Dataset):
-    def __init__(self, pngs, jsons, class2ind, classes, image_root, label_root, is_train=True, transforms=None):
+    def __init__(self, pngs, jsons, classes, image_root, label_root, is_train=True, transforms=None):
         self.pngs = pngs
         self.jsons = jsons
         _filenames = np.array(self.pngs)
@@ -49,7 +60,6 @@ class XRayDataset(Dataset):
         self.labelnames = labelnames
         self.is_train = is_train
         self.transforms = transforms
-        self.class2ind = class2ind
         self.classes = classes
         self.image_root = image_root
         self.label_root = label_root
@@ -79,7 +89,7 @@ class XRayDataset(Dataset):
         # 클래스 별로 처리합니다.
         for ann in annotations:
             c = ann["label"]
-            class_ind = self.class2ind[c]
+            class_ind = CLASS2IND[c]
             points = np.array(ann["points"])
             
             # polygon 포맷을 dense한 mask 포맷으로 바꿉니다.

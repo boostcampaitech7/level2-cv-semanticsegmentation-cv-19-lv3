@@ -3,30 +3,29 @@ IMAGE_ROOT: "/data/ephemeral/home/data/train/DCM"
 LABEL_ROOT: "/data/ephemeral/home/data/train/outputs_json"
 SAVED_DIR: "/data/ephemeral/home/data/result"
 
-CLASSES = [
-    'finger-1', 'finger-2', 'finger-3', 'finger-4', 'finger-5',
-    'finger-6', 'finger-7', 'finger-8', 'finger-9', 'finger-10',
-    'finger-11', 'finger-12', 'finger-13', 'finger-14', 'finger-15',
-    'finger-16', 'finger-17', 'finger-18', 'finger-19', 'Trapezium',
-    'Trapezoid', 'Capitate', 'Hamate', 'Scaphoid', 'Lunate',
-    'Triquetrum', 'Pisiform', 'Radius', 'Ulna',
-]
+# 모델 라이브러리 및 사용 모델 정의
+model_type: 'torchvision'
+model_name: 'fcn_resnet101'
 
-CLASS2IND = {v: i for i, v in enumerate(CLASSES)}
-IND2CLASS = {v: k for k, v in CLASS2IND.items()}
+# batch_size
+train_batch_size: 2
+valid_batch_size: 4
 
-CLASSES = [
-    'finger-1', 'finger-2', 'finger-3', 'finger-4', 'finger-5',
-    'finger-6', 'finger-7', 'finger-8', 'finger-9', 'finger-10',
-    'finger-11', 'finger-12', 'finger-13', 'finger-14', 'finger-15',
-    'finger-16', 'finger-17', 'finger-18', 'finger-19', 'Trapezium',
-    'Trapezoid', 'Capitate', 'Hamate', 'Scaphoid', 'Lunate',
-    'Triquetrum', 'Pisiform', 'Radius', 'Ulna',
-]
+# hyperparameter
+lr: 2e-4
+weight_decay: 1e-6
+train_num_workers: 8
+valid_num_workers: 0
+max_epoch: 30
 
-TRAIN_BATCH_SIZE = 2
-VALID_BATCH_SIZE = 4
-LR = 2e-4
-RANDOM_SEED = 2024
-NUM_EPOCHS = 50
-VAL_EVERY = 2
+# loss
+loss: BCEWithLogitsLoss
+
+# validation 인자
+k: 0
+val_every: 2
+threshold: 0.5
+pretrained: True
+
+# random seed 
+random_seed: 2024

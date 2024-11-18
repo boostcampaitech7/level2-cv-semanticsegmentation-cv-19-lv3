@@ -17,7 +17,7 @@ CLASSES = [
 ]
 
 class XRayDataset(Dataset):
-    def __init__(self, fnames, labels, image_root, label_root, k=0, is_train=True, transforms=None):
+    def __init__(self, fnames, labels, image_root, label_root, k=0, transforms=None, is_train=True):
         self.is_train = is_train
         self.transforms = transforms
         self.image_root = image_root

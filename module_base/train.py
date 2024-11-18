@@ -20,6 +20,9 @@ from transform import TransformSelector
 import warnings
 warnings.filterwarnings('ignore')
 
+from omegaconf import OmegaConf
+from argparse import ArgumentParser
+
 '''
 from argparse import ArgumentParser
 def parse_args():
@@ -32,9 +35,9 @@ def parse_args():
                         help='Path to the root directory containing labels')
     parser.add_argument('--save_dir', type=str, default="/data/ephemeral/home/data/result",
                         help='Path to the root directory containing save direction')
-    parser.add_argument('--batch_size', type=int, default=1)
+    parser.add_argument('--batch_size', type=int, default=2)
     parser.add_argument('--learning_rate', type=float, default=1e-4)
-    parser.add_argument('--max_epoch', type=int, default=1)
+    parser.add_argument('--max_epoch', type=int, default=30)
     parser.add_argument('--val_every', type=int, default=5)
     parser.add_argument('--random_seed', type=int, default=2024)
     parser.add_argument('--model_type', type=str, default='torchvision')
@@ -134,16 +137,18 @@ def validation(epoch, model, val_loader, criterion, model_type, thr=0.5):
 def train(model, train_loader, val_loader, criterion, optimizer, save_dir, random_seed, max_epoch, val_every, model_type):
     print(f'Start training..')
     best_dice = 0.
+
     scaler = torch.cuda.amp.GradScaler()
+    model = model.cuda()
     
     for epoch in range(max_epoch):
         model.train()
+        torch.cuda.empty_cache() # 학습 시작 전 캐시 삭제
         for step, (images, masks) in enumerate(train_loader):
             # gpu 연산을 위해 device 할당합니다.
             images, masks = images.cuda(), masks.cuda()
-            model = model.cuda()
             
-            # Mixed Precision Training 적용
+            # Mixed Precision Training으로 loss 계산에서만 FP32 사용
             with torch.cuda.amp.autocast():
                 if model_type == 'torchvision':
                     outputs = model(images)['out']
@@ -176,44 +181,45 @@ def train(model, train_loader, val_loader, criterion, optimizer, save_dir, rando
                 best_dice = dice
                 save_model(model, save_dir)
 
-def do_training(image_root, label_root, save_dir, batch_size, learning_rate, max_epoch, val_every, random_seed,
-                model_type, model_name, pretrained, cfg):
-    
+def do_training(cfg):
+    set_seed(cfg.random_seed)
     fnames, labels = set_data(cfg)
 
-    if not os.path.exists(save_dir):
-        os.makedirs(save_dir)
+    if not os.path.exists(cfg.save_dir):
+        os.makedirs(cfg.save_dir)
     
     train_trans = TransformSelector('albumentation')
     train_tf = train_trans.get_transform(True, 512)
     val_trans = TransformSelector('albumentation')
     val_tf = val_trans.get_transform(False, 512)
 
-    train_dataset = XRayDataset(fnames, labels, image_root, label_root, is_train=True, transforms=train_tf)
-    valid_dataset = XRayDataset(fnames, labels, image_root, label_root, is_train=False, transforms=val_tf)
+    train_dataset = XRayDataset(fnames, labels, cfg.image_root, cfg.label_root, 
+                                fold=cfg.val_fold, transforms=train_tf, is_train=True)
+    valid_dataset = XRayDataset(fnames, labels, cfg.image_root, cfg.label_root, 
+                                fold=cfg.val_fold, transforms=val_tf, is_train=False)
     
     train_loader = DataLoader(
         dataset=train_dataset, 
-        batch_size=batch_size,
+        batch_size=cfg.train_batch_size,
         shuffle=True,
-        num_workers=8,
+        num_workers=cfg.train_num_workers,
         drop_last=True,
     )
     
     valid_loader = DataLoader(
         dataset=valid_dataset, 
-        batch_size=8,
+        batch_size=cfg.valid_batch_size,
         shuffle=False,
-        num_workers=0,
+        num_workers=cfg.valid_num_workers,
         drop_last=False
     )
     
     model_selector = ModelSelector(
-        model_type=model_type,
+        model_type=cfg.model_type,
         num_classes=len(valid_loader.dataset.num_classes),
-        model_name=model_name,
+        model_name=cfg.model_name,
         # encoder_weights=encoder_weights,
-        pretrained=pretrained
+        pretrained=cfg.pretrained
     )
     model = model_selector.get_model()
     
@@ -221,17 +227,18 @@ def do_training(image_root, label_root, save_dir, batch_size, learning_rate, max
     criterion = nn.BCEWithLogitsLoss()
 
     # Optimizer를 정의합니다.
-    optimizer = optim.Adam(params=model.parameters(), lr=learning_rate, weight_decay=1e-6)
-
-    # 시드를 설정합니다.
-    set_seed(random_seed)
+    optimizer = optim.Adam(params=model.parameters(), lr=cfg.lr, weight_decay=1e-6)
     
-    train(model, train_loader, valid_loader, criterion, optimizer, save_dir, random_seed, max_epoch, val_every, model_type)
-
-def main(args):
-    do_training(**args.__dict__)
+    train(model, train_loader, valid_loader, criterion, optimizer,
+        cfg.save_dir, cfg.random_seed, cfg.max_epoch, cfg.val_every, cfg.model_type)
 
 if __name__ == '__main__':
-    pass
-    # args = parse_args()
-    # main(args)
+    parser = ArgumentParser()
+    parser.add_argument('--config', type=str, default='config.yaml')
+
+    args = parser.parse_args()
+
+    with open(args.config, 'r') as f:
+        cfg = OmegaConf.load(f)
+    
+    do_training(cfg)

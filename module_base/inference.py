@@ -13,11 +13,12 @@ from dataset import XRayInferenceDataset
 def parse_args():
     parser = ArgumentParser()
     
-    parser.add_argument('--image_root', type=str, default='//data/ephemeral/home/data/test/DCM',
+    parser.add_argument('--image_root', type=str, default='/data/ephemeral/home/data/test/DCM',
                         help='Path to the root directory containing images')
-    parser.add_argument('--save_dir', type=str, default="/data/ephemeral/home/data/train/result",
+    parser.add_argument('--save_dir', type=str, default="/data/ephemeral/home/data/result",
                         help='Path to the root directory containing save direction')
-    parser.add_argument('--random_seed', type=int, default=21)
+    parser.add_argument('--random_seed', type=int, default=2024)
+    parser.add_argument('--model_type', type=str, default='smp')
     args = parser.parse_args()
     
     return args
@@ -68,7 +69,7 @@ def decode_rle_to_mask(rle, height, width):
     
     return img.reshape(height, width)
 
-def test(model, data_loader, thr=0.5):
+def test(model, data_loader, model_type, thr=0.5):
     model = model.cuda()
     model.eval()
 
@@ -78,8 +79,11 @@ def test(model, data_loader, thr=0.5):
         n_class = len(CLASSES)
 
         for step, (images, image_names) in tqdm(enumerate(data_loader), total=len(data_loader)):
-            images = images.cuda()    
-            outputs = model(images)['out']
+            images = images.cuda()  
+            if model_type == 'torchvision':
+                outputs = model(images)['out']
+            elif model_type == 'smp':
+                outputs = model(images)  
             
             outputs = F.interpolate(outputs, size=(2048, 2048), mode="bilinear")
             outputs = torch.sigmoid(outputs)
@@ -93,7 +97,7 @@ def test(model, data_loader, thr=0.5):
                     
     return rles, filename_and_class
 
-def do_inference(image_root, save_dir, random_seed):
+def do_inference(image_root, save_dir, random_seed, model_type):
     set_seed(random_seed)
     pngs = {
         os.path.relpath(os.path.join(root, fname), start=image_root)
@@ -114,7 +118,7 @@ def do_inference(image_root, save_dir, random_seed):
         drop_last=False
     )
     
-    rles, filename_and_class = test(model, test_loader)
+    rles, filename_and_class = test(model, test_loader, model_type)
     
     classes, filename = zip(*[x.split("_") for x in filename_and_class])
     

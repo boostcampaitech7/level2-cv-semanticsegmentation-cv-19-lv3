@@ -33,9 +33,6 @@ CLASSES = [
     'Triquetrum', 'Pisiform', 'Radius', 'Ulna',
 ]
 
-CLASS2IND = {v: i for i, v in enumerate(CLASSES)}
-IND2CLASS = {v: k for k, v in CLASS2IND.items()}
-
 def set_seed(random_seed):
     torch.manual_seed(random_seed)
     torch.cuda.manual_seed(random_seed)
@@ -70,16 +67,14 @@ def decode_rle_to_mask(rle, height, width):
     
     return img.reshape(height, width)
 
-def test(model, data_loader, model_type, thr=0.5):
+def test(model, test_loader, model_type, thr=0.5):
     model = model.cuda()
     model.eval()
 
     rles = []
     filename_and_class = []
     with torch.no_grad():
-        # n_class = len(CLASSES)
-
-        for step, (images, image_names) in tqdm(enumerate(data_loader), total=len(data_loader)):
+        for step, (images, image_names) in tqdm(enumerate(test_loader), total=len(test_loader)):
             images = images.cuda()  
             if model_type == 'torchvision':
                 outputs = model(images)['out']
@@ -94,13 +89,13 @@ def test(model, data_loader, model_type, thr=0.5):
                 for c, segm in enumerate(output):
                     rle = encode_mask_to_rle(segm)
                     rles.append(rle)
-                    filename_and_class.append(f"{IND2CLASS[c]}_{image_name}")
+                    filename_and_class.append(f"{test_loader.dataset.ind2class[c]}_{image_name}")
                     
     return rles, filename_and_class
 
 def do_inference(image_root, save_dir, random_seed, model_type):
     set_seed(random_seed)
-    pngs = {
+    fnames = {
         os.path.relpath(os.path.join(root, fname), start=image_root)
         for root, _dirs, files in os.walk(image_root)
         for fname in files
@@ -110,7 +105,7 @@ def do_inference(image_root, save_dir, random_seed, model_type):
     
     test_trans = TransformSelector('albumentation')
     test_tf = test_trans.get_transform(False, 512)
-    test_dataset = XRayInferenceDataset(pngs, image_root,transforms=test_tf)
+    test_dataset = XRayInferenceDataset(fnames, image_root,transforms=test_tf)
     
     test_loader = DataLoader(
         dataset=test_dataset, 

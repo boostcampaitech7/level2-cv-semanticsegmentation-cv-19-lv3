@@ -204,8 +204,8 @@ def do_training(image_root, label_root, save_dir, batch_size, learning_rate, max
         os.makedirs(save_dir)
     
     train_trans = TransformSelector('albumentation')
-    val_trans = TransformSelector('albumentation')
     train_tf = train_trans.get_transform(True, 512)
+    val_trans = TransformSelector('albumentation')
     val_tf = val_trans.get_transform(False, 512)
 
     train_dataset = XRayDataset(pngs, jsons, CLASSES, image_root, label_root, is_train=True, transforms=train_tf)

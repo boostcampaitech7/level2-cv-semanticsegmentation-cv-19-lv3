@@ -9,6 +9,7 @@ import torch.nn.functional as F
 from torch.utils.data import DataLoader
 from argparse import ArgumentParser
 from dataset import XRayInferenceDataset
+from transform import TransformSelector
 
 def parse_args():
     parser = ArgumentParser()
@@ -107,8 +108,9 @@ def do_inference(image_root, save_dir, random_seed, model_type):
     }
     model = torch.load(os.path.join(save_dir, "best_model.pt"))
     
-    tf = A.Resize(512, 512)
-    test_dataset = XRayInferenceDataset(pngs, image_root,transforms=tf)
+    test_trans = TransformSelector('albumentation')
+    test_tf = test_trans.get_transform(False, 512)
+    test_dataset = XRayInferenceDataset(pngs, image_root,transforms=test_tf)
     
     test_loader = DataLoader(
         dataset=test_dataset, 

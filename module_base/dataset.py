@@ -17,15 +17,15 @@ CLASSES = [
 ]
 
 class XRayDataset(Dataset):
-    def __init__(self, fnames, labels, image_root, label_root, k=0, transforms=None, is_train=True):
+    def __init__(self, fnames, labels, image_root, label_root, kfold=0, transforms=None, is_train=True):
         self.is_train = is_train
         self.transforms = transforms
         self.image_root = image_root
         self.label_root = label_root
-        self.k = k
+        self.kfold = kfold
         self.class2ind = {v: i for i, v in enumerate(CLASSES)}
         self.ind2class = {v: k for k, v in self.class2ind.items()}
-        self.num_classes = len(CLASSES)
+        self.classes = CLASSES
         
         groups = [os.path.dirname(fname) for fname in fnames]
         
@@ -38,13 +38,13 @@ class XRayDataset(Dataset):
         labelnames = []
         for i, (x, y) in enumerate(gkf.split(fnames, ys, groups)):
             if self.is_train: # k번 빼고 학습
-                if i == self.k:
+                if i == self.kfold:
                     continue
                 filenames += list(fnames[y])
                 labelnames += list(labels[y])
             
             else:  # k번은 검증
-                if i != self.k:
+                if i != self.kfold:
                     continue
                 filenames = list(fnames[y])
                 labelnames = list(labels[y])

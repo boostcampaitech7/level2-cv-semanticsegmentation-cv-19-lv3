@@ -1,11 +1,14 @@
 # 데이터 및 모델 저장 경로
-IMAGE_ROOT: "/data/ephemeral/home/data/train/DCM"
-LABEL_ROOT: "/data/ephemeral/home/data/train/outputs_json"
-SAVED_DIR: "/data/ephemeral/home/data/result"
+image_root: /data/ephemeral/home/data/train/DCM
+label_root: /data/ephemeral/home/data/train/outputs_json
+save_dir: /data/ephemeral/home/data/result
 
 # 모델 라이브러리 및 사용 모델 정의
-model_type: 'torchvision'
-model_name: 'fcn_resnet101'
+model_type: smp
+model_name: Unet
+encoder_name: vgg11
+encoder_weights: imagenet
+pretrained: True
 
 # batch_size
 train_batch_size: 2
@@ -22,10 +25,12 @@ max_epoch: 30
 loss: BCEWithLogitsLoss
 
 # validation 인자
-k: 0
+kfold: 0
 val_every: 2
 threshold: 0.5
-pretrained: True
 
 # random seed 
 random_seed: 2024
+
+# augmentation
+size: 512

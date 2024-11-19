@@ -1,0 +1,31 @@
+# 데이터 및 모델 저장 경로
+IMAGE_ROOT: "/data/ephemeral/home/data/train/DCM"
+LABEL_ROOT: "/data/ephemeral/home/data/train/outputs_json"
+SAVED_DIR: "/data/ephemeral/home/data/result"
+
+# 모델 라이브러리 및 사용 모델 정의
+model_type: 'torchvision'
+model_name: 'fcn_resnet101'
+
+# batch_size
+train_batch_size: 2
+valid_batch_size: 4
+
+# hyperparameter
+lr: 2e-4
+weight_decay: 1e-6
+train_num_workers: 8
+valid_num_workers: 0
+max_epoch: 30
+
+# loss
+loss: BCEWithLogitsLoss
+
+# validation 인자
+k: 0
+val_every: 2
+threshold: 0.5
+pretrained: True
+
+# random seed 
+random_seed: 2024

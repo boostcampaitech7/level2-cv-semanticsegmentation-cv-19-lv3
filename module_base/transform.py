@@ -7,7 +7,8 @@ class AlbumentationTransform:
         if is_train:
             self.transform = A.Compose(
                 [
-                    A.HorizontalFlip(0.2)
+                    A.HorizontalFlip(0.2),
+                    A.CLAHE(clip_limit=4.0, tile_grid_size=(8, 8), always_apply=False, p=1.0)
                 ]+ common_transform)
         else:
             self.transform = A.Compose(common_transform)

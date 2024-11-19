@@ -16,6 +16,7 @@ from torch.utils.data import DataLoader
 from dataset import XRayDataset
 from model import ModelSelector
 from transform import TransformSelector
+from loss import LossSelector
 
 import warnings
 warnings.filterwarnings('ignore')
@@ -194,7 +195,12 @@ def main(cfg):
     )
     model = model_selector.get_model()
     
-    criterion = nn.BCEWithLogitsLoss()
+    # criterion = nn.BCEWithLogitsLoss()
+    if cfg.loss.params:
+        loss = LossSelector(cfg.loss.name, **cfg.loss.params)
+    else:
+        loss = LossSelector(cfg.loss.name)
+    criterion = loss.get_loss()
 
     optimizer = optim.Adam(params=model.parameters(), lr=cfg.lr, weight_decay=cfg.weight_decay)
     

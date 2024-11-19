@@ -22,7 +22,9 @@ valid_num_workers: 0
 max_epoch: 30
 
 # loss
-loss: BCEWithLogitsLoss
+loss:
+    name: BCEWithLogitsLoss
+    params: null
 
 # optimizer
 

@@ -112,7 +112,7 @@ class XRayInferenceDataset(Dataset):
         return len(self.fnames)
 
     def __getitem__(self, item):
-        image_name = self.filenames[item]
+        image_name = self.fnames[item]
         image_path = os.path.join(self.image_root, image_name)
 
         image = cv2.imread(image_path)

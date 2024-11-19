@@ -24,9 +24,11 @@ max_epoch: 30
 # loss
 loss: BCEWithLogitsLoss
 
+# optimizer
+
 # validation 인자
 kfold: 0
-val_every: 2
+val_every: 1
 threshold: 0.5
 
 # random seed 

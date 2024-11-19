@@ -19,5 +19,5 @@ __pycache__
 *.tar.gz
 *.xlsx
 
-#wandb
+# wandb
 wandb/

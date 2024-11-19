@@ -99,7 +99,7 @@ def validation(epoch, model, val_loader, criterion, model_type, thr=0.5):
     dices_per_class = torch.mean(dices, 0)
     dice_str = [
         f"{c:<12}: {d.item():.4f}"
-        for c, d in zip(val_loader.dataset.claases, dices_per_class)
+        for c, d in zip(val_loader.dataset.classes, dices_per_class)
     ]
     dice_str = "\n".join(dice_str) 
     print(dice_str)

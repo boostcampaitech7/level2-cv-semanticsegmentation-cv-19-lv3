@@ -90,11 +90,12 @@ def validation(epoch, model, val_loader, criterion, model_type, thr=0.5):
             cnt += 1
             
             outputs = torch.sigmoid(outputs)
-            outputs = (outputs > thr).detach().cpu()
-            masks = masks.detach().cpu()
-            
+            # outputs = (outputs > thr).detach().cpu()
+            # masks = masks.detach().cpu()
+            outputs = (outputs > thr)
             dice = dice_coef(outputs, masks)
-            dices.append(dice)
+            # dices.append(dice)
+            dices.append(dice.detach().cpu())
                 
     dices = torch.cat(dices, 0)
     dices_per_class = torch.mean(dices, 0)

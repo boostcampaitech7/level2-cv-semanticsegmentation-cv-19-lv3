@@ -16,38 +16,13 @@ from torch.utils.data import DataLoader
 from dataset import XRayDataset
 from model import ModelSelector
 from transform import TransformSelector
+from loss import LossSelector
 
 import warnings
 warnings.filterwarnings('ignore')
 
 from omegaconf import OmegaConf
 from argparse import ArgumentParser
-
-'''
-from argparse import ArgumentParser
-def parse_args():
-    parser = ArgumentParser()
-
-    # Conventional args
-    parser.add_argument('--image_root', type=str, default='/data/ephemeral/home/data/train/DCM',
-                        help='Path to the root directory containing images')
-    parser.add_argument('--label_root', type=str, default='/data/ephemeral/home/data/train/outputs_json',
-                        help='Path to the root directory containing labels')
-    parser.add_argument('--save_dir', type=str, default="/data/ephemeral/home/data/result",
-                        help='Path to the root directory containing save direction')
-    parser.add_argument('--batch_size', type=int, default=2)
-    parser.add_argument('--learning_rate', type=float, default=1e-4)
-    parser.add_argument('--max_epoch', type=int, default=30)
-    parser.add_argument('--val_every', type=int, default=5)
-    parser.add_argument('--random_seed', type=int, default=2024)
-    parser.add_argument('--model_type', type=str, default='torchvision')
-    parser.add_argument('--model_name', type=str, default='fcn_resnet101')
-    # parser.add_argument('--encoder_weights', type=str, default='imagenet')
-    parser.add_argument('--pretrained', type=str, default='True')
-    args = parser.parse_args()
-    
-    return args
-'''
 
 def set_seed(random_seed):
     torch.manual_seed(random_seed)
@@ -115,17 +90,18 @@ def validation(epoch, model, val_loader, criterion, model_type, thr=0.5):
             cnt += 1
             
             outputs = torch.sigmoid(outputs)
-            outputs = (outputs > thr).detach().cpu()
-            masks = masks.detach().cpu()
-            
+            # outputs = (outputs > thr).detach().cpu()
+            # masks = masks.detach().cpu()
+            outputs = (outputs > thr)
             dice = dice_coef(outputs, masks)
-            dices.append(dice)
+            # dices.append(dice)
+            dices.append(dice.detach().cpu())
                 
     dices = torch.cat(dices, 0)
     dices_per_class = torch.mean(dices, 0)
     dice_str = [
         f"{c:<12}: {d.item():.4f}"
-        for c, d in zip(val_loader.dataset.num_classes, dices_per_class)
+        for c, d in zip(val_loader.dataset.classes, dices_per_class)
     ]
     dice_str = "\n".join(dice_str) 
     print(dice_str)
@@ -142,8 +118,8 @@ def train(model, train_loader, val_loader, criterion, optimizer, save_dir, rando
     model = model.cuda()
     
     for epoch in range(max_epoch):
-        model.train()
         torch.cuda.empty_cache() # 학습 시작 전 캐시 삭제
+        model.train()
         for step, (images, masks) in enumerate(train_loader):
             # gpu 연산을 위해 device 할당합니다.
             images, masks = images.cuda(), masks.cuda()
@@ -171,8 +147,6 @@ def train(model, train_loader, val_loader, criterion, optimizer, save_dir, rando
                 )
         # validation 주기에 따라 loss를 출력하고 best model을 저장합니다.
         if (epoch + 1) % val_every == 0:
-            # 캐시된 메모리를 해제하여 PyTorch의 메모리 누수를 방지
-            torch.cuda.empty_cache()
             dice = validation(epoch + 1, model, val_loader, criterion, model_type)
             
             if best_dice < dice:
@@ -181,7 +155,7 @@ def train(model, train_loader, val_loader, criterion, optimizer, save_dir, rando
                 best_dice = dice
                 save_model(model, save_dir)
 
-def do_training(cfg):
+def main(cfg):
     set_seed(cfg.random_seed)
     fnames, labels = set_data(cfg)
 
@@ -189,14 +163,12 @@ def do_training(cfg):
         os.makedirs(cfg.save_dir)
     
     train_trans = TransformSelector('albumentation')
-    train_tf = train_trans.get_transform(True, 512)
+    train_tf = train_trans.get_transform(True, cfg.size)
     val_trans = TransformSelector('albumentation')
-    val_tf = val_trans.get_transform(False, 512)
+    val_tf = val_trans.get_transform(False, cfg.size)
 
-    train_dataset = XRayDataset(fnames, labels, cfg.image_root, cfg.label_root, 
-                                fold=cfg.val_fold, transforms=train_tf, is_train=True)
-    valid_dataset = XRayDataset(fnames, labels, cfg.image_root, cfg.label_root, 
-                                fold=cfg.val_fold, transforms=val_tf, is_train=False)
+    train_dataset = XRayDataset(fnames, labels, cfg.image_root, cfg.label_root, cfg.kfold, train_tf, is_train=True)
+    valid_dataset = XRayDataset(fnames, labels, cfg.image_root, cfg.label_root, cfg.kfold, val_tf, is_train=False)
     
     train_loader = DataLoader(
         dataset=train_dataset, 
@@ -216,18 +188,22 @@ def do_training(cfg):
     
     model_selector = ModelSelector(
         model_type=cfg.model_type,
-        num_classes=len(valid_loader.dataset.num_classes),
+        num_classes=len(valid_loader.dataset.classes),
         model_name=cfg.model_name,
-        # encoder_weights=encoder_weights,
-        pretrained=cfg.pretrained
+        encoder_name=cfg.encoder_name,
+        encoder_weights=cfg.encoder_weights
+        # pretrained=cfg.pretrained
     )
     model = model_selector.get_model()
     
-    # Loss function을 정의합니다.
-    criterion = nn.BCEWithLogitsLoss()
+    # criterion = nn.BCEWithLogitsLoss()
+    if cfg.loss.params:
+        loss = LossSelector(cfg.loss.name, **cfg.loss.params)
+    else:
+        loss = LossSelector(cfg.loss.name)
+    criterion = loss.get_loss()
 
-    # Optimizer를 정의합니다.
-    optimizer = optim.Adam(params=model.parameters(), lr=cfg.lr, weight_decay=1e-6)
+    optimizer = optim.Adam(params=model.parameters(), lr=cfg.lr, weight_decay=cfg.weight_decay)
     
     train(model, train_loader, valid_loader, criterion, optimizer,
         cfg.save_dir, cfg.random_seed, cfg.max_epoch, cfg.val_every, cfg.model_type)
@@ -235,10 +211,8 @@ def do_training(cfg):
 if __name__ == '__main__':
     parser = ArgumentParser()
     parser.add_argument('--config', type=str, default='config.yaml')
-
     args = parser.parse_args()
 
     with open(args.config, 'r') as f:
         cfg = OmegaConf.load(f)
-    
-    do_training(cfg)
+    main(cfg)

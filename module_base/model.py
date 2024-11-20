@@ -18,10 +18,10 @@ class SMP(nn.Module):
     '''
     SMP에서 제공하는 사전 훈련된 모델을 사용하는 클래스
     '''
-    def __init__(self, model_name, encoder_weights, num_classes):
+    def __init__(self, model_name, encoder_name, encoder_weights, num_classes):
         super(SMP, self).__init__()
-        self.model = smp.Unet(
-            encoder_name=model_name,
+        self.model = smp.__dict__[model_name](
+            encoder_name=encoder_name,
             encoder_weights=encoder_weights,
             in_channels=3,
             classes=num_classes

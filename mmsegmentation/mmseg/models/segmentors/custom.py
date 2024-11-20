@@ -4,6 +4,7 @@ from mmseg.structures.seg_data_sample import SegDataSample
 from mmseg.models.utils.wrappers import resize
 
 from mmengine.structures import PixelData
+import torch
 
 
 class PostProcessResultMixin:
@@ -68,9 +69,29 @@ class PostProcessResultMixin:
             else:
                 i_seg_logits = seg_logits[i]
 
-            i_seg_logits = i_seg_logits.sigmoid()
-            i_seg_pred = (i_seg_logits > 0.5).to(i_seg_logits)
+            # i_seg_logits = i_seg_logits.sigmoid()
+            # i_seg_pred = (i_seg_logits > self.decode_head.threshold).to(i_seg_logits)
+            # Sigmoid로 변환하여 confidence 계산
+            i_seg_logits = i_seg_logits.sigmoid()  # [C, H, W]
 
+            # 각 픽셀별로 상위 2개의 클래스의 confidence 값과 인덱스 추출
+            topk_values, topk_indices = i_seg_logits.topk(2, dim=0)  # topk_values, topk_indices: [2, H, W]
+
+            # Threshold 기준을 적용하여 confidence 값이 threshold 이상인 경우만 남김
+            threshold_mask = topk_values > self.decode_head.threshold  # [2, H, W]
+
+            # i_seg_pred 초기화
+            i_seg_pred = torch.zeros_like(i_seg_logits)  # [C, H, W]
+
+            # threshold를 만족하는 상위 2개 클래스만 유지하고, 나머지는 0으로 처리
+            for j in range(2):  # 최대 2개의 클래스만 선택
+                # topk_indices는 [2, H, W]에서 i번째 인덱스 추출, 이를 [1, H, W]로 유지
+                class_indices = topk_indices[j:j+1, :, :]  # [1, H, W]
+                class_mask = threshold_mask[j:j+1, :, :].to(i_seg_logits.dtype)  # [1, H, W]
+                
+                # 선택된 클래스 위치에 값을 설정
+                i_seg_pred.scatter_(0, class_indices, class_mask)
+                
             data_samples[i].set_data(
                 {
                     "seg_logits": PixelData(**{"data": i_seg_logits}),

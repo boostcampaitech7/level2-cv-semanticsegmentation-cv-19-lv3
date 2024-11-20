@@ -4,6 +4,7 @@ import os
 import numpy as np
 import pandas as pd
 from prettytable import PrettyTable
+import cv2
 
 import torch
 import torch.nn.functional as F
@@ -25,6 +26,15 @@ CLASSES = [
     'Trapezoid', 'Capitate', 'Hamate', 'Scaphoid', 'Lunate',
     'Triquetrum', 'Pisiform', 'Radius', 'Ulna',
 ]
+PALETTE = [
+    (220, 20, 60), (119, 11, 32), (0, 0, 142), (0, 0, 230), (106, 0, 228),
+    (0, 60, 100), (0, 80, 100), (0, 0, 70), (0, 0, 192), (250, 170, 30),
+    (100, 170, 30), (220, 220, 0), (175, 116, 175), (250, 0, 30), (165, 42, 42),
+    (255, 77, 255), (0, 226, 252), (182, 182, 255), (0, 82, 0), (120, 166, 157),
+    (110, 76, 0), (174, 57, 255), (199, 100, 0), (72, 0, 118), (255, 179, 240),
+    (0, 125, 92), (209, 0, 151), (188, 208, 182), (0, 220, 176),
+]
+
 num_classes = len(CLASSES) + 1
 
 
@@ -34,6 +44,8 @@ class SubmissionMetric(BaseMetric):
                  collect_device='cpu',
                  prefix=None,
                  save_path='',
+                 max_vis_cnt=10,
+                 multi_label=True,
                  **kwargs):
         super().__init__(collect_device=collect_device, prefix=prefix)
         self.save_path = save_path
@@ -41,12 +53,25 @@ class SubmissionMetric(BaseMetric):
             self.save_path = '/data/ephemeral/home/submission'
         
         os.makedirs(self.save_path, exist_ok=True)
+        os.makedirs(os.path.join(self.save_path, 'img'), exist_ok=True)
         self.cnt = 0
+        self.max_vis_cnt = max_vis_cnt
+        self.multi_label=False
         
         # self.rles = []
         # self.filename_and_class = []
         
+    def label2rgb(self, label):
+        label = np.array(label)
+        image_size = label.shape[1:] + (3, )
+        image = np.zeros(image_size, dtype=np.uint8)
+        
+        for i, class_label in enumerate(label):
+            image[class_label == 1] = PALETTE[i]
             
+        return image
+    
+    
     def encode_mask_to_rle(self, mask):
         '''
         mask: numpy array binary mask 
@@ -109,11 +134,28 @@ class SubmissionMetric(BaseMetric):
             #     pred_label = F.interpolate(pred_label, size=ori_shape, mode="bilinear")
             pred_label = pred_label.cpu().numpy()
             
+            # 시각화를 위한 세팅
+            preds = []
             
-            pred_label = self.convert_to_class_masks(pred_label)
+            if not self.multi_label:
+                pred_label = self.convert_to_class_masks(pred_label)
+                
             for i, pred in enumerate(pred_label):
                 rle = self.encode_mask_to_rle(pred)
+                pred = self.decode_rle_to_mask(rle, height=2048, width=2048)
+                preds.append(pred)
                 self.results.append((rle, f"{CLASSES[i]}_{img_name}"))
+            
+            
+            if self.cnt < self.max_vis_cnt:
+                self.cnt += 1
+                fig, ax = plt.subplots(1, 2, figsize=(24, 12))
+                image = cv2.imread(img_path)
+                ax[0].imshow(image)
+                ax[1].imshow(self.label2rgb(preds))
+                plt.savefig(os.path.join(self.save_path, 'img', f"{img_name}_visualization.png"))
+                plt.close()
+            
         
             
     def compute_metrics(self, results):

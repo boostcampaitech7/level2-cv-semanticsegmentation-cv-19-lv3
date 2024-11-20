@@ -61,6 +61,7 @@ def set_data(cfg):
 def save_model(model, save_dir, file_name='best_model.pt'):
     output_path = os.path.join(save_dir, file_name)
     torch.save(model, output_path)
+    return output_path
 
 def validation(epoch, model, val_loader, criterion, model_type, thr=0.5):
     print(f'Start validation #{epoch:2d}')

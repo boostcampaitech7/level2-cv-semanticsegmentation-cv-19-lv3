@@ -4,22 +4,16 @@ max_iters = 30000
 T_max = max_iters-warm_up_step
 
 # optimizer
-embed_multi = dict(lr_mult=1.0, decay_mult=0.0)
 optimizer = dict(
     type='AdamW', lr=0.0001, weight_decay=0.05, eps=1e-8, betas=(0.9, 0.999))
 optim_wrapper = dict(
-    type='OptimWrapper',
+    type='AmpOptimWrapper',
     optimizer=optimizer,
     clip_grad=dict(max_norm=0.01, norm_type=2),
-    accumulative_counts=2,
-    paramwise_cfg=dict(
-        custom_keys={
-            'backbone': dict(lr_mult=0.1, decay_mult=1.0),
-            'query_embed': embed_multi,
-            'query_feat': embed_multi,
-            'level_embed': embed_multi,
-        },
-        norm_decay_mult=0.0))
+    accumulative_counts=1
+    )
+
+
 # learning policy
 param_scheduler = [
     dict(type='LinearLR',
@@ -33,7 +27,7 @@ param_scheduler = [
          begin=warm_up_step,
          end=max_iters)
 ]
-optimizer_config = dict(type="GradientCumulativeOptimizerHook", cumulative_iters=2)
+
 
 # training schedule for 90k
 train_cfg = dict(type='IterBasedTrainLoop', 

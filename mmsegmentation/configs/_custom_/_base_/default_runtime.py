@@ -1,5 +1,4 @@
 default_scope = 'mmseg'
-fp16 = dict(loss_scale=512.)
 
 env_cfg = dict(
     cudnn_benchmark=True,
@@ -34,3 +33,4 @@ log_config = dict(
     ])
 
 tta_model = dict(type='SegTTAModel')
+randomness=dict(seed=42)

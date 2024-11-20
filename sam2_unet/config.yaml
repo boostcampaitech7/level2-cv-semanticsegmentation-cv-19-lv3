@@ -1,0 +1,47 @@
+# paths
+train_image_path: /data/ephemeral/home/data/train/DCM
+train_mask_path: /data/ephemeral/home/data/train/outputs_json
+test_image_path: /data/ephemeral/home/data/test/DCM
+hiera_path: /data/ephemeral/home/sam2_hiera_large.pt
+
+# train
+train_batch_size: 8
+train_num_workers: 8
+
+# valid
+valid_batch_size: 2
+valid_num_workers: 2
+kfold: 0
+val_every: 1
+threshold: 0.5
+
+# hyperparameter
+lr: 1e-3
+max_epoch: 30
+
+# optimizer
+optimizer: adamw
+optimizer_parameters:
+  weight_decay: 0.01
+  betas: [0.9, 0.999]
+
+# scheduler
+scheduler: multisteplr
+scheduler_paramters:
+  milestones: [8, 16]
+  gamma: 0.1
+
+# random seed 
+random_seed: 2024
+
+# augmentation
+size: 512
+
+# wandb
+wandb_name: 
+wandb_id: 
+
+# resume
+resume: False
+ckpt_path: ./checkpoints/
+start_epoch: 0

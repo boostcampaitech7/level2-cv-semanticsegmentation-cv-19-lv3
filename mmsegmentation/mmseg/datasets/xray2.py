@@ -74,23 +74,32 @@ class XRayDataset2(BaseSegDataset):
         super().__init__(**kwargs)
         
     def load_data_list(self):
+        _filenames = np.array(pngs)
+        _labelnames = np.array(jsons)
+
+        groups = [os.path.dirname(fname) for fname in _filenames]
+
+        # dummy label
+        ys = [0 for fname in _filenames]
+
+        gkf = GroupKFold(n_splits=5)
+
         filenames = []
         labelnames = []
-        valid_set_num = 2
         for i, (x, y) in enumerate(gkf.split(_filenames, ys, groups)):
             if self.is_train:
-                if i == valid_set_num:
+                if i == 0:
                     continue
-                    
+
                 filenames += list(_filenames[y])
                 labelnames += list(_labelnames[y])
-            
+
             else:
-                if i == valid_set_num:
-                    filenames = list(_filenames[y])
-                    labelnames = list(_labelnames[y])
-                    break
-        
+                filenames = list(_filenames[y])
+                labelnames = list(_labelnames[y])
+
+                break
+
         data_list = []
         for i, (img_path, ann_path) in enumerate(zip(filenames, labelnames)):
             data_info = dict(
@@ -98,7 +107,7 @@ class XRayDataset2(BaseSegDataset):
                 seg_map_path=os.path.join(LABEL_ROOT, ann_path),
             )
             data_list.append(data_info)
-        
+
         return data_list
         
 
@@ -106,31 +115,31 @@ class XRayDataset2(BaseSegDataset):
 class LoadXRayAnnotations(BaseTransform):
     def transform(self, result):
         label_path = result["seg_map_path"]
-        
+
         image_size = (2048, 2048)
-        
+
         # process a label of shape (H, W, NC)
         label_shape = image_size + (len(CLASSES), )
         label = np.zeros(label_shape, dtype=np.uint8)
-        
+
         # read label file
         with open(label_path, "r") as f:
             annotations = json.load(f)
         annotations = annotations["annotations"]
-        
+
         # iterate each class
         for ann in annotations:
             c = ann["label"]
             class_ind = CLASS2IND[c]
             points = np.array(ann["points"])
-            
+
             # polygon to mask
             class_label = np.zeros(image_size, dtype=np.uint8)
             cv2.fillPoly(class_label, [points], 1)
             label[..., class_ind] = class_label
-        
+
         result["gt_seg_map"] = label
-        
+
         return result
     
 @TRANSFORMS.register_module()
@@ -139,70 +148,3 @@ class TransposeAnnotations(BaseTransform):
         result["gt_seg_map"] = np.transpose(result["gt_seg_map"], (2, 0, 1))
         
         return result
-
-
-
-# MMCV의 LoadAnnotation을 활용해본 버전인데 잘 동작하지 않는듯함
-# @TRANSFORMS.register_module()
-# class LoadXRayAnnotations(MMCV_LoadAnnotations):
-#     def __init__(
-#         self,
-#         reduce_zero_label=None,
-#         backend_args=None,
-#         imdecode_backend='pillow',
-#     ) -> None:
-#         super().__init__(
-#             with_bbox=False,
-#             with_label=False,
-#             with_seg=True,
-#             with_keypoints=False,
-#             imdecode_backend=imdecode_backend,
-#             backend_args=backend_args)
-#         self.reduce_zero_label = reduce_zero_label
-#         if self.reduce_zero_label is not None:
-#             warnings.warn('`reduce_zero_label` will be deprecated, '
-#                           'if you would like to ignore the zero label, please '
-#                           'set `reduce_zero_label=True` when dataset '
-#                           'initialized')
-#         self.imdecode_backend = imdecode_backend
-    
-    
-#     def _load_seg_map(self, results):
-#         label_path = results["seg_map_path"]
-        
-#         image_size = (2048, 2048)
-        
-#         # process a label of shape (H, W, NC)
-#         label_shape = image_size + (len(CLASSES), )
-#         label = np.zeros(label_shape, dtype=np.uint8)
-        
-#         # read label file
-#         with open(label_path, "r") as f:
-#             annotations = json.load(f)
-#         annotations = annotations["annotations"]
-        
-#         # iterate each class
-#         for ann in annotations:
-#             c = ann["label"]
-#             class_ind = CLASS2IND[c]
-#             points = np.array(ann["points"])
-            
-#             # polygon to mask
-#             class_label = np.zeros(image_size, dtype=np.uint8)
-#             cv2.fillPoly(class_label, [points], 1)
-#             label[..., class_ind] = class_label
-        
-#         results["gt_seg_map"] = label
-        
-#         try:
-#             results['seg_fields'].append('gt_seg_map')
-#         except:
-#             results['seg_fields'] = ['gt_seg_map']
-    
-    
-#     def __repr__(self) -> str:
-#         repr_str = self.__class__.__name__
-#         repr_str += f'(reduce_zero_label={self.reduce_zero_label}, '
-#         repr_str += f"imdecode_backend='{self.imdecode_backend}', "
-#         repr_str += f'backend_args={self.backend_args})'
-#         return repr_str

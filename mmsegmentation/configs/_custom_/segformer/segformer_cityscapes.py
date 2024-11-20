@@ -51,8 +51,8 @@ model = dict(
         threshold=0.4,
         loss_decode=[
             dict(type='CrossEntropyLoss', use_sigmoid=True, loss_weight=1.0),
-            dict(type='FocalLoss', use_sigmoid=True, loss_weight=1.0),
-            dict(type='DiceLoss', use_sigmoid=True, loss_weight=1.0)
+            # dict(type='FocalLoss', use_sigmoid=True, loss_weight=1.0),
+            # dict(type='DiceLoss', use_sigmoid=True, loss_weight=1.0)
         ]
         ),
     train_cfg=dict(),

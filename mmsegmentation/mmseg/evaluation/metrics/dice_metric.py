@@ -119,10 +119,6 @@ class DiceMetric(BaseMetric):
         return metrics
 
 
-
-
-
-
 @METRICS.register_module()
 class DiceMetricForMultiLabel(BaseMetric):
     def __init__(self,

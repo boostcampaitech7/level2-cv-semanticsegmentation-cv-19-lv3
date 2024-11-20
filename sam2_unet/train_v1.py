@@ -1,8 +1,9 @@
 import os
-import random
-import datetime
-import numpy as np
+import yaml
 import torch
+import random
+import numpy as np
+from datetime import datetime
 from torch.utils.data import DataLoader
 from utils.loss import structure_loss
 from utils.dataset import FullDataset
@@ -25,18 +26,24 @@ def set_seed(RANDOM_SEED):
 def main(cfg):    
     device = torch.device("cuda")
     model = SAM2UNet(cfg.hiera_path)
+    
+    transform = 
 
     train_dataset = FullDataset(
-        cfg.train_image_path, 
-        cfg.train_mask_path, 
-        cfg.image_size, 
-        mode='train')
+        image_root=cfg.train_image_path, 
+        gt_root=cfg.train_mask_path, 
+        is_train=True,
+        transforms=transform,
+        kfold=cfg.kfold,
+        k=cfg.k)
     
     valid_dataset = FullDataset(
-        cfg.train_image_path, 
-        cfg.train_mask_path, 
-        cfg.image_size, 
-        mode='valid')
+        image_root=cfg.train_image_path, 
+        gt_root=cfg.train_mask_path, 
+        is_train=False,
+        transforms=None,
+        kfold=cfg.kfold,
+        k=cfg.k)
 
     train_loader = DataLoader(
         train_dataset, 
@@ -56,15 +63,19 @@ def main(cfg):
     scheduler_selector = SchedulerSelector(optimizer)
     scheduler = scheduler_selector.get_scheduler(cfg.scheduler, **cfg.scheduler_parameters)
 
-    loss_fn = structure_loss()
+    loss_fn = structure_loss
 
     os.makedirs("./checkpoints", exist_ok=True)
     now = datetime.now()
     time = now.strftime('%Y-%m-%d_%H:%M:%S')
     save_dir = os.path.join('./checkpoints', time)
-    with open(os.path.join(save_dir, "config.txt"), "w") as f:
-        for arg, value in vars(cfg).items():
-            f.write(f"{arg}: {value} \n")
+    os.makedirs(save_dir, exist_ok=True)
+
+    # Config 저장
+    save_path = os.path.join(save_dir, "config.yaml")
+    OmegaConf.save(cfg, save_path)
+
+    print(f"Config saved at {save_path}")
 
     trainer = Trainer(
         model=model,
@@ -76,8 +87,8 @@ def main(cfg):
         loss_fn=loss_fn,
         epochs=cfg.max_epoch,
         save_dir=save_dir,
-        wandb_id=,
-        wandb_name=,
+        wandb_id=cfg.wandb_id,
+        wandb_name=cfg.wandb_name,
         resume=cfg.resume,
         ckpt_path=cfg.ckpt_path,
         start_epoch=cfg.start_epoch

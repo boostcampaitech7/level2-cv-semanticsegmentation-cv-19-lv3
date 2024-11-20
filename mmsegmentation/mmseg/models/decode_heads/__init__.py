@@ -40,6 +40,7 @@ from .custom import (
     FCNHeadWithoutAccuracy,
     SegformerHeadWithoutAccuracy,
     UPerHeadWithoutAccuracy,
+    LightHamHeadWithoutAccuracy
 )
 
 __all__ = [
@@ -53,5 +54,5 @@ __all__ = [
     'LightHamHead', 'PIDHead', 'DDRHead', 'VPDDepthHead', 'SideAdapterCLIPHead', "ASPPHeadWithoutAccuracy",
     "FCNHeadWithoutAccuracy",
     "SegformerHeadWithoutAccuracy",
-    "UPerHeadWithoutAccuracy",
+    "UPerHeadWithoutAccuracy", "LightHamHeadWithoutAccuracy"
 ]

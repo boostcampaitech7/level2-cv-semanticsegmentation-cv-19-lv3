@@ -2,7 +2,7 @@ from torch import nn
 
 from mmseg.registry import MODELS
 from mmseg.models.utils.wrappers import resize
-from mmseg.models.decode_heads import ASPPHead, FCNHead, SegformerHead, UPerHead
+from mmseg.models.decode_heads import ASPPHead, FCNHead, SegformerHead, UPerHead, LightHamHead
 
 
 class LossByFeatMixIn:
@@ -71,4 +71,8 @@ class SegformerHeadWithoutAccuracy(LossByFeatMixIn, SegformerHead):
 
 @MODELS.register_module()
 class UPerHeadWithoutAccuracy(LossByFeatMixIn, UPerHead):
+    pass
+
+@MODELS.register_module()
+class LightHamHeadWithoutAccuracy(LossByFeatMixIn, LightHamHead):
     pass

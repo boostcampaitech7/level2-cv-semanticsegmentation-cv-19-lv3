@@ -1,4 +1,4 @@
-val_save_interval = 2000
+val_save_interval = 1000
 warm_up_step = 1000
 max_iters = 30000
 T_max = max_iters-warm_up_step
@@ -6,7 +6,7 @@ T_max = max_iters-warm_up_step
 # optimizer
 embed_multi = dict(lr_mult=1.0, decay_mult=0.0)
 optimizer = dict(
-    type='AdamW', lr=0.001, weight_decay=0.05, eps=1e-8, betas=(0.9, 0.999))
+    type='AdamW', lr=0.0001, weight_decay=0.05, eps=1e-8, betas=(0.9, 0.999))
 optim_wrapper = dict(
     type='OptimWrapper',
     optimizer=optimizer,

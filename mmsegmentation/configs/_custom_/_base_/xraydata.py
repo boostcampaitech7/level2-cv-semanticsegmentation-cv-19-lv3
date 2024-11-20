@@ -1,4 +1,4 @@
-resize_size = (2048, 2048)
+resize_size = (1536, 1536)
 crop_size = (1536, 1536)
 test_size = (2048, 2048)
 
@@ -16,9 +16,9 @@ train_pipeline = [
     #     resize_type='ResizeShortestEdge',
     #     max_size=1536),
     dict(type='Resize', scale=resize_size, keep_ratio=True),
-    dict(type='RandomCrop', crop_size=crop_size, cat_max_ratio=0.75),
-    dict(type='RandomFlip', prob=0.5),
-    dict(type='PhotoMetricDistortion'),
+    # dict(type='RandomCrop', crop_size=crop_size, cat_max_ratio=0.75),
+    # dict(type='RandomFlip', prob=0.5),
+    # dict(type='PhotoMetricDistortion'),
     dict(type='PackSegInputs')
 ]
 

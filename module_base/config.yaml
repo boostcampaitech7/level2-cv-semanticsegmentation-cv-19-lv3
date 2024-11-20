@@ -5,8 +5,8 @@ save_dir: /data/ephemeral/home/data/result
 
 # 모델 라이브러리 및 사용 모델 정의
 model_type: smp
-model_name: Unet
-encoder_name: vgg19
+model_name: UnetPlusPlus
+encoder_name: efficientnet-b5
 encoder_weights: imagenet
 pretrained: True
 
@@ -27,6 +27,7 @@ loss:
     params: null
 
 # optimizer
+optim: Adam
 
 # validation 인자
 kfold: 0
@@ -38,3 +39,7 @@ random_seed: 2024
 
 # augmentation
 size: 512
+
+# wandb
+wandb_run_name: yoon_unet++_efficientnet
+wandb_run_id: None

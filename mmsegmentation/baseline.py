@@ -5,9 +5,6 @@ from mmengine.runner import Runner
 ##############################
 # 데이터 경로를 입력하세요
 
-IMAGE_ROOT = "/data/ephemeral/home/data/train/DCM"
-TEST_IMAGE_ROOT = "/data/ephemeral/home/data/test/DCM"
-LABEL_ROOT = "/data/ephemeral/home/data/train/outputs_json"
 CONFIG_PATH = "/data/ephemeral/home/parkjunil/level2-cv-semanticsegmentation-cv-19-lv3/mmsegmentation/configs/_baseline_/config_for_this_example.py"
 CHECKPOINT_PATH = "/data/ephemeral/home/parkjunil/work_dir/baseline_1024/best_mDice_iter_20000.pth"
 SUBMISSION_PATH = "/data/ephemeral/home/submission"

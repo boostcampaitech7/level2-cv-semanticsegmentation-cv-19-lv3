@@ -1,6 +1,7 @@
 IMAGE_SIZE = (1536, 1536)
 IMAGE_ROOT = '/data/ephemeral/home/data/train/DCM'
 LABEL_ROOT = '/data/ephemeral/home/data/train/outputs_json'
+SUBMISSION_PATH = '/data/ephemeral/home/submission'
 
 # dataset settings
 dataset_type = 'XRayDataset2'
@@ -68,7 +69,7 @@ test_dataloader = dict(
 
 
 val_evaluator = dict(type='DiceMetricForMultiLabel')
-test_evaluator = dict(type='SubmissionMetric')
+test_evaluator = dict(type='SubmissionMetric', save_path=SUBMISSION_PATH, max_vis_cnt=20)
 
 
 

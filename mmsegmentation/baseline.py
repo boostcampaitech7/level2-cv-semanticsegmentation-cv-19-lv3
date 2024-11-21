@@ -39,6 +39,7 @@ LABEL_ROOT = "/data/ephemeral/home/data/train/outputs_json"
 CONFIG_PATH = "/data/ephemeral/home/parkjunil/level2-cv-semanticsegmentation-cv-19-lv3/mmsegmentation/configs/_baseline_/config_for_this_example.py"
 CHECKPOINT_PATH = "/data/ephemeral/home/parkjunil/work_dir/baseline/iter_20000.pth"
 SUBMISSION_PATH = "/data/ephemeral/home/submission"
+WORK_DIR = "/data/ephemeral/home/parkjunil/work_dir/baseline_1024"
 
 CLASSES = [
     'finger-1', 'finger-2', 'finger-3', 'finger-4', 'finger-5',
@@ -184,7 +185,7 @@ def load_config():
     # load config
     cfg = Config.fromfile(CONFIG_PATH)
     cfg.launcher = "none"
-    cfg.work_dir = "/data/ephemeral/home/parkjunil/work_dir/baseline"
+    cfg.work_dir = WORK_DIR
 
     # resume training
     cfg.resume = False
@@ -208,4 +209,4 @@ def inference():
 
 
 if __name__ == "__main__":
-    inference()
+    train()

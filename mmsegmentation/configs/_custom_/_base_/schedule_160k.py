@@ -13,6 +13,8 @@ optim_wrapper = dict(
     accumulative_counts=1
     )
 
+# mixed precision
+fp16 = dict(loss_scale='dynamic')
 
 # learning policy
 param_scheduler = [

@@ -1,9 +1,9 @@
-_scope_ = ['mmengine', 'mmseg']
 # Train Segformer Mit B3
 _base_ = [
     "../_base_/models/segformer_mit-b0.py",
     "./dataset_setting.py",
-    "../_base_/default_runtime.py"
+    "../_custom_/_base_/schedule_160k.py",
+    "../_custom_/_base_/default_runtime.py"
 ]
 
 data_preprocessor = dict(
@@ -40,9 +40,6 @@ model = dict(
 # optimizer
 optimizer = dict(type='AdamW', lr=0.00006, betas=(0.9, 0.999), weight_decay=0.01)
 optim_wrapper = dict(type='OptimWrapper', optimizer=optimizer, clip_grad=None)
-
-# mixed precision
-fp16 = dict(loss_scale='dynamic')
 
 # learning policy
 param_scheduler = [

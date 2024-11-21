@@ -1,15 +1,17 @@
+IMAGE_SIZE = (1024, 1024)
+
 # dataset settings
 dataset_type = 'XRayDataset2'
 train_pipeline = [
     dict(type='LoadImageFromFile'),
     dict(type='LoadXRayAnnotations'),
-    dict(type='Resize', scale=(512, 512)),
+    dict(type='Resize', scale=IMAGE_SIZE),
     dict(type='TransposeAnnotations'),
     dict(type='PackSegInputs')
 ]
 val_pipeline = [
     dict(type='LoadImageFromFile'),
-    dict(type='Resize', scale=(512, 512)),
+    dict(type='Resize', scale=IMAGE_SIZE),
     # add loading annotation after ``Resize`` because ground truth
     # does not need to do resize data transform
     dict(type='LoadXRayAnnotations'),
@@ -18,7 +20,7 @@ val_pipeline = [
 ]
 test_pipeline = [
     dict(type='LoadImageFromFile'),
-    dict(type='Resize', scale=(512, 512)),
+    dict(type='Resize', scale=IMAGE_SIZE),
     dict(type='PackSegInputs')
 ]
 

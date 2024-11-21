@@ -24,9 +24,9 @@ log_config = dict(
             by_epoch=False,
             interval=1,
             init_kwargs=dict(
-                entity='frostings',
-                project='Boost Camp Lv2-3',
-                name='mmsegtest'),
+                project='MMsegmentation_segformer',
+                name='no_augmentation_1024'
+                ),
             log_checkpoint=True,
             log_checkpoint_metadata=True,
             num_eval_images=10)

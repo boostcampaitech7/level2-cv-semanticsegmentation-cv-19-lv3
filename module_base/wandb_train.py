@@ -1,6 +1,7 @@
 # python native
 import os
 import random
+import time
 import datetime
 
 import numpy as np
@@ -24,6 +25,7 @@ warnings.filterwarnings('ignore')
 
 from omegaconf import OmegaConf
 from argparse import ArgumentParser
+from wandb_logger import WandbLogger
 
 def set_seed(random_seed):
     torch.manual_seed(random_seed)
@@ -60,6 +62,7 @@ def set_data(cfg):
 def save_model(model, save_dir, file_name='best_model.pt'):
     output_path = os.path.join(save_dir, file_name)
     torch.save(model, output_path)
+    return output_path
 
 def validation(epoch, model, val_loader, criterion, model_type, thr=0.5):
     print(f'Start validation #{epoch:2d}')
@@ -91,11 +94,8 @@ def validation(epoch, model, val_loader, criterion, model_type, thr=0.5):
             cnt += 1
             
             outputs = torch.sigmoid(outputs)
-            # outputs = (outputs > thr).detach().cpu()
-            # masks = masks.detach().cpu()
             outputs = (outputs > thr)
             dice = dice_coef(outputs, masks)
-            # dices.append(dice)
             dices.append(dice.detach().cpu())
                 
     dices = torch.cat(dices, 0)
@@ -108,17 +108,30 @@ def validation(epoch, model, val_loader, criterion, model_type, thr=0.5):
     print(dice_str)
     
     avg_dice = torch.mean(dices_per_class).item()
+    val_loss = total_loss / len(val_loader.dataset)
     
-    return avg_dice
+    return avg_dice, val_loss
 
-def train(model, train_loader, val_loader, criterion, optimizer, save_dir, random_seed, max_epoch, val_every, model_type):
+def train(model, train_loader, val_loader, criterion, optimizer, scheduler, cfg):
     print(f'Start training..')
+    logger = WandbLogger(name=cfg.wandb_run_name)
+    
+    wandb_config = {
+        "model_name": cfg.model_name,
+        "model_backbone": cfg.encoder_name,
+        "learning_rate": cfg.lr,
+        "max_epoch": cfg.max_epoch,
+        "optimizer": cfg.optim,
+        "criterion": cfg.loss.name
+    }
     best_dice = 0.
-
     scaler = torch.cuda.amp.GradScaler()
     model = model.cuda()
+    logger.initialize(wandb_config)
     
-    for epoch in range(max_epoch):
+    for epoch in range(cfg.max_epoch):
+        epoch_start = time.time()
+        epoch_loss = 0
         torch.cuda.empty_cache() # 학습 시작 전 캐시 삭제
         model.train()
         for step, (images, masks) in enumerate(train_loader):
@@ -127,9 +140,9 @@ def train(model, train_loader, val_loader, criterion, optimizer, save_dir, rando
             
             # Mixed Precision Training으로 loss 계산에서만 FP32 사용
             with torch.cuda.amp.autocast():
-                if model_type == 'torchvision':
+                if cfg.model_type == 'torchvision':
                     outputs = model(images)['out']
-                elif model_type == 'smp':
+                elif cfg.model_type == 'smp':
                     outputs = model(images)
                 loss = criterion(outputs, masks)
             # 스케일된 loss를 사용해 backward 및 optimizer step
@@ -139,22 +152,37 @@ def train(model, train_loader, val_loader, criterion, optimizer, save_dir, rando
             scaler.update()
             
             # step 주기에 따라 loss를 출력합니다.
-            if (step + 1) % 80 == 0:
+            if (step + 1) % 25 == 0:
                 print(
                     f'{datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")} | '
-                    f'Epoch [{epoch+1}/{max_epoch}], '
+                    f'Epoch [{epoch+1}/{cfg.max_epoch}], '
                     f'Step [{step+1}/{len(train_loader)}], '
                     f'Loss: {round(loss.item(),4)}'
                 )
+        scheduler.step()
+        epoch_time = datetime.timedelta(seconds=time.time() - epoch_start)
+        dataset_size = len(train_loader.dataset)
+        epoch_loss = epoch_loss / dataset_size
         # validation 주기에 따라 loss를 출력하고 best model을 저장합니다.
-        if (epoch + 1) % val_every == 0:
-            dice = validation(epoch + 1, model, val_loader, criterion, model_type)
+        if (epoch + 1) % cfg.val_every == 0:
+            dice, val_loss = validation(epoch + 1, model, val_loader, criterion, cfg.model_type)
             
             if best_dice < dice:
                 print(f"Best performance at epoch: {epoch + 1}, {best_dice:.4f} -> {dice:.4f}")
-                print(f"Save model in {save_dir}")
+                print(f"Save model in {cfg.save_dir}")
                 best_dice = dice
-                save_model(model, save_dir)
+                ckpt_path = save_model(model, cfg.save_dir)
+            logger.log_model(ckpt_path, f'model-epoch-{epoch+1}')
+            logger.log_epoch_metrics(
+                {
+                    "epoch": epoch,
+                    "loss": epoch_loss,
+                    "dice": dice,
+                    "val_loss": val_loss,
+                    "epoch_time": epoch_time.total_seconds()
+                }
+            )
+    logger.finish()
 
 def main(cfg):
     set_seed(cfg.random_seed)
@@ -205,9 +233,11 @@ def main(cfg):
     criterion = loss.get_loss()
 
     optimizer = optim.Adam(params=model.parameters(), lr=cfg.lr, weight_decay=cfg.weight_decay)
+
+    sched = SchedulerSelector(cfg.scheduler, optimizer, cfg.max_epoch)
+    scheduler = sched.get_sched()
     
-    train(model, train_loader, valid_loader, criterion, optimizer,
-        cfg.save_dir, cfg.random_seed, cfg.max_epoch, cfg.val_every, cfg.model_type)
+    train(model, train_loader, valid_loader, criterion, optimizer, scheduler, cfg)
 
 if __name__ == '__main__':
     parser = ArgumentParser()

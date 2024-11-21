@@ -13,7 +13,6 @@ valid_batch_size: 2
 valid_num_workers: 2
 kfold: 5
 k: 0
-val_every: 5
 threshold: 0.5
 
 # hyperparameter
@@ -35,7 +34,10 @@ scheduler_parameters:
 # random seed 
 random_seed: 2024
 
-# augmentation
+# save
+save_every: 5
+
+# resize
 image_size: 512
 
 # wandb

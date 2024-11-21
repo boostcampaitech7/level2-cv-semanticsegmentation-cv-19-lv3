@@ -18,7 +18,7 @@ class Trainer:
         loss_fn,
         epochs,
         save_dir,
-        val_every,
+        save_every,
         wandb_id,
         wandb_name,
         resume=False,
@@ -34,7 +34,7 @@ class Trainer:
         self.loss_fn = loss_fn  # 손실 함수
         self.epochs = epochs  # 총 훈련 에폭 수
         self.save_dir = save_dir
-        self.val_every = val_every
+        self.save_every = save_every
         self.wandb_id = wandb_id
         self.wandb_name = wandb_name
         self.resume = resume # 학습 재개를 위한 것인지
@@ -50,7 +50,7 @@ class Trainer:
         ]
 
     def save_checkpoint_epoch(self, epoch: int, valid_loss: float, valid_dice: float) -> None:
-        ckpt_path = os.path.join(self.save_dir, f'epoch-{epoch + 1}-loss-{valid_loss}-dice-{valid_dice:.4f}.pth')
+        ckpt_path = os.path.join(self.save_dir, f'epoch-{epoch + 1}-loss-{valid_loss:.4f}-dice-{valid_dice:.4f}.pth')
         save_checkpoint(self.model, self.optimizer, self.scheduler, epoch+1, valid_dice, ckpt_path)
         print(f"Checkpoint updated at epoch {epoch + 1} and saved as {ckpt_path}")
     
@@ -123,12 +123,9 @@ class Trainer:
                 valid_loss += loss.item() * masks.shape[0]
 
                 outputs = torch.sigmoid(outputs)
-                outputs = (outputs > thr).detach().cpu()
-                masks = masks.detach().cpu()
-
-                
+                outputs = (outputs > thr)
                 dice = self.dice_coef(outputs, masks)
-                valid_dices.append(dice)
+                valid_dices.append(dice.detach().cpu())
                 
                 del outputs, masks, dice
 
@@ -145,7 +142,7 @@ class Trainer:
         print(dice_str)
         valid_dice = torch.mean(dices_per_class).item()
 
-        return valid_loss, valid_dice, dices_per_class
+        return valid_loss, valid_dice
 
     def train(self) -> None:
         if self.resume:
@@ -161,12 +158,12 @@ class Trainer:
             train_loss, train_dice = self.train_epoch(self.train_loader)
             train_loss = train_loss / len(self.train_loader.dataset)
 
-            valid_loss, valid_dice, dices_per_class = self.validate(self.valid_loader)
-            val_loss = val_loss / len(self.valid_loader.dataset)
+            valid_loss, valid_dice = self.validate(self.valid_loader)
+            valid_loss = valid_loss / len(self.valid_loader.dataset)
 
             print(f"Epoch {epoch+1}, Train Loss: {train_loss:.8f} | Train Dice: {train_dice:.8f} \nVaild Loss: {valid_loss:.8f} | Vaild Dice: {valid_dice:.8f}\n")
             
-            if (epoch + 1) % self.val_every == 0:
+            if (epoch + 1) % self.save_every == 0:
                 self.save_checkpoint_epoch(epoch, valid_loss, valid_dice)
             
         self.save_checkpoint_epoch(epoch, valid_loss, valid_dice)

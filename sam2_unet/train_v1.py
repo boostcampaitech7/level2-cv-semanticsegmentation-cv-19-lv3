@@ -1,5 +1,4 @@
 import os
-import yaml
 import torch
 import random
 import numpy as np
@@ -9,6 +8,7 @@ from utils.loss import structure_loss
 from utils.dataset import FullDataset
 from utils.optimizer import OptimizerSelector
 from utils.scheduler import SchedulerSelector
+from utils.transform import TransformSelector
 from trainer import Trainer
 from SAM2UNet import SAM2UNet
 from omegaconf import OmegaConf
@@ -17,7 +17,7 @@ from argparse import ArgumentParser
 def set_seed(RANDOM_SEED):
     torch.manual_seed(RANDOM_SEED)
     torch.cuda.manual_seed(RANDOM_SEED)
-    torch.cuda.manual_seed_all(RANDOM_SEED) # if use multi-GPU
+    torch.cuda.manual_seed_all(RANDOM_SEED)
     torch.backends.cudnn.deterministic = True
     torch.backends.cudnn.benchmark = False
     np.random.seed(RANDOM_SEED)
@@ -27,7 +27,8 @@ def main(cfg):
     device = torch.device("cuda")
     model = SAM2UNet(cfg.hiera_path)
     
-    transform = 
+    transform_selector = TransformSelector(image_size=cfg.image_size)
+    transform = transform_selector.get_transform(is_train=True)
 
     train_dataset = FullDataset(
         image_root=cfg.train_image_path, 
@@ -87,6 +88,7 @@ def main(cfg):
         loss_fn=loss_fn,
         epochs=cfg.max_epoch,
         save_dir=save_dir,
+        save_every=cfg.save_every,
         wandb_id=cfg.wandb_id,
         wandb_name=cfg.wandb_name,
         resume=cfg.resume,
@@ -97,7 +99,6 @@ def main(cfg):
     trainer.train()
     
 if __name__ == "__main__":
-    set_seed(2024)
     parser = ArgumentParser()
     parser.add_argument('--config', type=str, default='config.yaml')
     args = parser.parse_args()
@@ -105,4 +106,5 @@ if __name__ == "__main__":
     with open(args.config, 'r') as f:
         cfg = OmegaConf.load(f)
     
+    set_seed(cfg.random_seed)
     main(cfg)

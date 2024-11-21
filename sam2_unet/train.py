@@ -65,6 +65,7 @@ def main(cfg):
             torch.save(model.state_dict(), os.path.join('./checkpoints', 'SAM2-UNet-%d.pth' % (epoch + 1)))
             print('[Saving Snapshot:]', os.path.join('./checkpoints', 'SAM2-UNet-%d.pth'% (epoch + 1)))
 
+
 if __name__ == "__main__":
     set_seed(2024)
     parser = ArgumentParser()

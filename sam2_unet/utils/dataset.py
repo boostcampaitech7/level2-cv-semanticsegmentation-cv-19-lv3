@@ -5,7 +5,6 @@ import os
 import cv2
 import json
 import torch
-import albumentations as A
 from PIL import Image
 from torchvision.transforms import InterpolationMode
 from torch.utils.data import Dataset
@@ -119,7 +118,7 @@ class FullDataset(Dataset):
                 break
 
         self.images = filenames
-        self.labels = labelnames
+        self.gts = labelnames
         self.transform = transforms
 
     def __getitem__(self, idx):
@@ -127,7 +126,7 @@ class FullDataset(Dataset):
         image_path = os.path.join(self.image_root, image_name)
         
         image = cv2.imread(image_path)
-        image = image / 255.
+        image = image.astype(np.float32) / 255.
         
         label_name = self.gts[idx]
         label_path = os.path.join(self.gt_root, label_name)
@@ -205,7 +204,7 @@ class TestDataset:
         image_path = os.path.join(self.image_root, image_name)
         
         image = cv2.imread(image_path)
-        image = image / 255.
+        image = image.astype(np.float32) / 255.
         
         if self.transform is not None:
             inputs = {"image": image}

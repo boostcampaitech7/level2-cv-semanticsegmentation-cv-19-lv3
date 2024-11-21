@@ -1,6 +1,9 @@
 import os
+import time
+import datetime
 from tqdm.auto import tqdm
 from utils.checkpoint import save_checkpoint, load_checkpoint
+from utils.wandb_logger import WandbLogger
 
 import torch
 import torch.nn.functional as F
@@ -17,6 +20,7 @@ class Trainer:
         scheduler,
         loss_fn,
         epochs,
+        threshold,
         save_dir,
         save_every,
         wandb_id,
@@ -25,21 +29,22 @@ class Trainer:
         ckpt_path="",
         start_epoch=0
         ):
-        self.model = model  # 훈련할 모델
-        self.device = device  # 연산을 수행할 디바이스 (CPU or GPU)
-        self.train_loader = train_loader  # 훈련 데이터 로더
-        self.valid_loader = valid_loader  # 검증 데이터 로더
-        self.optimizer = optimizer  # 최적화 알고리즘
-        self.scheduler = scheduler # 학습률 스케줄러
-        self.loss_fn = loss_fn  # 손실 함수
-        self.epochs = epochs  # 총 훈련 에폭 수
+        self.model = model
+        self.device = device
+        self.train_loader = train_loader
+        self.valid_loader = valid_loader
+        self.optimizer = optimizer
+        self.scheduler = scheduler
+        self.loss_fn = loss_fn
+        self.epochs = epochs
+        self.threshold = threshold
         self.save_dir = save_dir
         self.save_every = save_every
         self.wandb_id = wandb_id
         self.wandb_name = wandb_name
-        self.resume = resume # 학습 재개를 위한 것인지
-        self.ckpt_file = ckpt_path # 학습 재개를 위해 불러와야할 가중치 주소
-        self.start_epoch = start_epoch # 재개
+        self.resume = resume
+        self.ckpt_file = ckpt_path
+        self.start_epoch = start_epoch
         self.classes = [
             'finger-1', 'finger-2', 'finger-3', 'finger-4', 'finger-5',
             'finger-6', 'finger-7', 'finger-8', 'finger-9', 'finger-10',
@@ -62,7 +67,7 @@ class Trainer:
         eps = 0.0001
         return (2. * intersection + eps) / (torch.sum(y_true_f, -1) + torch.sum(y_pred_f, -1) + eps)
 
-    def train_epoch(self, train_loader: DataLoader, thr=0.5):
+    def train_epoch(self, train_loader: DataLoader):
         self.model.train()
         
         train_loss = 0.
@@ -84,7 +89,7 @@ class Trainer:
             train_loss += loss.item() * masks.shape[0]
 
             outputs = torch.sigmoid(pred0)
-            outputs = (outputs > thr)
+            outputs = (outputs > self.threshold)
             dice = self.dice_coef(outputs, masks)
             train_dices.append(dice.detach().cpu())
 
@@ -99,13 +104,13 @@ class Trainer:
 
         return train_loss, train_dice
 
-    def validate(self, val_loader: DataLoader, thr=0.5) -> tuple[float, float]:
+    def validate(self, valid_loader: DataLoader) -> tuple[float, float]:
         self.model.eval()
 
         valid_loss = 0.
         valid_dices = []
 
-        progress_bar = tqdm(val_loader, desc="Validating", leave=False)
+        progress_bar = tqdm(valid_loader, desc="Validating", leave=False)
         
         with torch.no_grad():
             for batch_idx, (images, masks) in enumerate(progress_bar):
@@ -123,7 +128,7 @@ class Trainer:
                 valid_loss += loss.item() * masks.shape[0]
 
                 outputs = torch.sigmoid(outputs)
-                outputs = (outputs > thr)
+                outputs = (outputs > self.threshold)
                 dice = self.dice_coef(outputs, masks)
                 valid_dices.append(dice.detach().cpu())
                 
@@ -145,27 +150,50 @@ class Trainer:
         return valid_loss, valid_dice
 
     def train(self) -> None:
+        logger = WandbLogger(name=self.wandb_name)
+        logger.initialize({
+            "model_type": "SAM2-UNet",
+            "model_name": "SAM2-UNet",
+            "criterion": "BCEWithLogitLoss",
+            "learning_rate": self.optimizer.param_groups[0]['lr'],
+            "max_epoch": self.epochs,
+            "optimizer": type(self.optimizer).__name__,
+            "scheduler": type(self.scheduler).__name__
+        })
         if self.resume:
             self.load_settings()
         print(f"training start")
 
         self.model.to(self.device)
         for epoch in range(self.start_epoch, self.epochs):
-            train_loss, train_dice = 0.0, 0.0
-            train_dice, valid_dice = 0.0, 0.0
+            epoch_start = time.time()
+            train_loss, train_dice = 0., 0.
+            train_dice, valid_dice = 0., 0.
             print(f"Epoch {epoch+1}/{self.epochs}")
             
             train_loss, train_dice = self.train_epoch(self.train_loader)
             train_loss = train_loss / len(self.train_loader.dataset)
 
+            torch.cuda.empty_cache()
             valid_loss, valid_dice = self.validate(self.valid_loader)
             valid_loss = valid_loss / len(self.valid_loader.dataset)
 
-            print(f"Epoch {epoch+1}, Train Loss: {train_loss:.8f} | Train Dice: {train_dice:.8f} \nVaild Loss: {valid_loss:.8f} | Vaild Dice: {valid_dice:.8f}\n")
-            
+            epoch_time = datetime.timedelta(seconds=time.time() - epoch_start)
+            print(f"Epoch {epoch+1}, Train Loss: {train_loss:.6f} | Train Dice: {train_dice:.6f} \nVaild Loss: {valid_loss:.6f} | Vaild Dice: {valid_dice:.6f}\n")
+            logger.log_epoch_metrics(
+                {
+                    "epoch": epoch,
+                    "epoch_time": epoch_time.total_seconds(),
+                    "train_loss": train_loss,
+                    "train_dice": train_dice,
+                    "valid_loss": valid_loss,
+                    "valid_dice": valid_dice,
+                    "learning_rate": self.scheduler.get_last_lr()[0]
+                }
+            )
             if (epoch + 1) % self.save_every == 0:
                 self.save_checkpoint_epoch(epoch, valid_loss, valid_dice)
-            
+
         self.save_checkpoint_epoch(epoch, valid_loss, valid_dice)
         
     def load_settings(self) -> None:

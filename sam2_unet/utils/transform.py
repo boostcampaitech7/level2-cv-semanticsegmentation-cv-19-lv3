@@ -8,7 +8,7 @@ class TransformSelector:
         if is_train:
             transform = A.Compose(
                 [
-                    A.ColorJitter()
+                    A.HorizontalFlip(p=0.5)
                 ]+ self.common_transform)
         else:
             transform = A.Compose(self.common_transform)

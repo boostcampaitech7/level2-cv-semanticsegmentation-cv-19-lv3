@@ -5,6 +5,7 @@
 
 
 # 결과 파일 제외
+*.yaml
 *.csv
 
 # python cache 제외

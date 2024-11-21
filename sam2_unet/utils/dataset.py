@@ -111,7 +111,7 @@ class FullDataset(Dataset):
                 labelnames += list(_labelnames[y])
             
             else:
-                if i != k:
+                if k >= 0 and i != k:
                     continue
                 filenames = list(_filenames[y])
                 labelnames = list(_labelnames[y])

@@ -60,8 +60,8 @@ def test(model, args, thr=0.5):
     transform = transform_selector.get_transform(is_train=False)
 
     test_dataset = TestDataset(
-        args.test_image_path,
-        transform
+        image_root=args.test_image_path,
+        transform=transform
     )
 
     test_loader = DataLoader(
@@ -108,7 +108,9 @@ def main(args):
         "class": classes,
         "rle": rles,
     })
-    df.to_csv("./outputs/output1.csv", index=False)
+    df.to_csv("./outputs/output.csv", index=False)
 
 if __name__ == "__main__":
     main(args)
+
+# python test.py --checkpoint <checkpoint_path>  

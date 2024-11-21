@@ -8,6 +8,7 @@ from utils.wandb_logger import WandbLogger
 import torch
 import torch.nn.functional as F
 from torch.utils.data import DataLoader
+from torch.optim.lr_scheduler import ReduceLROnPlateau
 
 class Trainer:
     def __init__(
@@ -178,8 +179,13 @@ class Trainer:
             valid_loss, valid_dice = self.validate(self.valid_loader)
             valid_loss = valid_loss / len(self.valid_loader.dataset)
 
+            if isinstance(self.scheduler, ReduceLROnPlateau):
+                self.scheduler.step(valid_loss)
+            else:
+                self.scheduler.step()
+
             epoch_time = datetime.timedelta(seconds=time.time() - epoch_start)
-            print(f"Epoch {epoch+1}, Train Loss: {train_loss:.6f} | Train Dice: {train_dice:.6f} \nVaild Loss: {valid_loss:.6f} | Vaild Dice: {valid_dice:.6f}\n")
+            print(f"Epoch {epoch+1}, Train Loss: {train_loss:.6f} | Train Dice: {train_dice:.6f} | Vaild Loss: {valid_loss:.6f} | Vaild Dice: {valid_dice:.6f}\n")
             logger.log_epoch_metrics(
                 {
                     "epoch": epoch,

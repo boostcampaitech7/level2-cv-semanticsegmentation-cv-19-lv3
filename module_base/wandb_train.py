@@ -152,14 +152,14 @@ def train(model, train_loader, val_loader, criterion, optimizer, scheduler, cfg)
             scaler.update()
             
             # step 주기에 따라 loss를 출력합니다.
-            if (step + 1) % 25 == 0:
+            if (step + 1) % 80 == 0:
                 print(
                     f'{datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")} | '
                     f'Epoch [{epoch+1}/{cfg.max_epoch}], '
                     f'Step [{step+1}/{len(train_loader)}], '
                     f'Loss: {round(loss.item(),4)}'
                 )
-        scheduler.step()
+        # scheduler.step()
         epoch_time = datetime.timedelta(seconds=time.time() - epoch_start)
         dataset_size = len(train_loader.dataset)
         epoch_loss = epoch_loss / dataset_size

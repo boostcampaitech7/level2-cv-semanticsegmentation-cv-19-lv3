@@ -23,7 +23,7 @@ max_epoch: 50
 
 # loss
 loss:
-    name: BCEWithLogitsLoss
+    name: DiceBCELoss
     params: null
 
 # optimizer
@@ -44,5 +44,5 @@ random_seed: 2024
 size: 1024
 
 # wandb
-wandb_run_name: Test
+wandb_run_name: DiceBCELoss_exp
 wandb_run_id: None

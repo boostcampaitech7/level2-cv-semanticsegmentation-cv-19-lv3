@@ -146,6 +146,7 @@ def train(model, train_loader, val_loader, criterion, optimizer, save_dir, rando
                     f'Step [{step+1}/{len(train_loader)}], '
                     f'Loss: {round(loss.item(),4)}'
                 )
+        # scheduler.step()
         # validation 주기에 따라 loss를 출력하고 best model을 저장합니다.
         if (epoch + 1) % val_every == 0:
             dice = validation(epoch + 1, model, val_loader, criterion, model_type)

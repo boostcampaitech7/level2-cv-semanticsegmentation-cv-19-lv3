@@ -1,4 +1,6 @@
 IMAGE_SIZE = (1024, 1024)
+IMAGE_ROOT = '/data/ephemeral/home/data/train/DCM'
+LABEL_ROOT = '/data/ephemeral/home/data/train/outputs_json'
 
 # dataset settings
 dataset_type = 'XRayDataset2'
@@ -32,6 +34,8 @@ train_dataloader = dict(
     dataset=dict(
         type=dataset_type,
         is_train=True,
+        image_root=IMAGE_ROOT,
+        label_root=LABEL_ROOT,
         pipeline=train_pipeline
     )
 )
@@ -42,6 +46,8 @@ val_dataloader = dict(
     dataset=dict(
         type=dataset_type,
         is_train=False,
+        image_root=IMAGE_ROOT,
+        label_root=LABEL_ROOT,
         pipeline=val_pipeline
     )
 )

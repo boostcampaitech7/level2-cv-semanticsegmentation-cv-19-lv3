@@ -1,4 +1,6 @@
-IMAGE_SIZE = (1024, 1024)
+IMAGE_SIZE = (1536, 1536)
+IMAGE_ROOT = '/data/ephemeral/home/data/train/DCM'
+LABEL_ROOT = '/data/ephemeral/home/data/train/outputs_json'
 
 # dataset settings
 dataset_type = 'XRayDataset2'
@@ -8,6 +10,7 @@ train_pipeline = [
             dict(type='LoadImageFromFile'),
             dict(type='LoadXRayAnnotations'),
             dict(type='Resize', scale=IMAGE_SIZE),
+            # dict(type='RandomRotFlip', rotate_prob=0.2, flip_prob=0.4),
             dict(type='TransposeAnnotations'),
             dict(type='PackSegInputs')
         ]
@@ -26,21 +29,29 @@ test_pipeline = [
 
 train_dataloader = dict(
     batch_size=1,
-    num_workers=2,
-    # persistent_workers=True,
+    num_workers=4,
+    persistent_workers=True,
     sampler=dict(type='InfiniteSampler', shuffle=True),
     dataset=dict(
         type=dataset_type,
-        is_train = True,
-        pipeline=train_pipeline))
+        is_train=True,
+        image_root=IMAGE_ROOT,
+        label_root=LABEL_ROOT,
+        pipeline=train_pipeline
+    )
+    )
 val_dataloader = dict(
     batch_size=1,
     num_workers=1,
     sampler=dict(type='DefaultSampler', shuffle=False),
     dataset=dict(
         type=dataset_type,
-        is_train = False,
-        pipeline=val_pipeline))
+        is_train=False,
+        image_root=IMAGE_ROOT,
+        label_root=LABEL_ROOT,
+        pipeline=val_pipeline
+    )
+    )
 
 
 test_dataloader = dict(

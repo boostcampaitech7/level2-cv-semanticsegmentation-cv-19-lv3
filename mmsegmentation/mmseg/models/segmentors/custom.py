@@ -63,7 +63,7 @@ class PostProcessResultMixin:
                 i_seg_logits = resize(
                     i_seg_logits,
                     size=img_meta['ori_shape'],
-                    mode='bilinear',
+                    mode='bicubic',
                     align_corners=self.align_corners,
                     warning=False).squeeze(0)
             else:

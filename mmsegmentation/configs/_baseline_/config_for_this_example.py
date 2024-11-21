@@ -1,7 +1,7 @@
 # Train Segformer Mit B3
 _base_ = [
     "../_base_/models/segformer_mit-b0.py",
-    "./dataset_setting.py",
+    "../_custom_/_base_/xraydata2.py",
     "../_custom_/_base_/schedule_160k.py",
     "../_custom_/_base_/default_runtime.py"
 ]

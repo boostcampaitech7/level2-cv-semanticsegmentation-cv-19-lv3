@@ -12,9 +12,6 @@ from mmcv.transforms import BaseTransform
 
 # 데이터 경로를 입력하세요
 
-IMAGE_ROOT = '/data/ephemeral/home/data/train/DCM'
-LABEL_ROOT = '/data/ephemeral/home/data/train/outputs_json'
-
 CLASSES = [
     'finger-1', 'finger-2', 'finger-3', 'finger-4', 'finger-5',
     'finger-6', 'finger-7', 'finger-8', 'finger-9', 'finger-10',
@@ -27,55 +24,48 @@ CLASSES = [
 CLASS2IND = {v: i for i, v in enumerate(CLASSES)}
 IND2CLASS = {v: k for k, v in CLASS2IND.items()}
 
-pngs = {
-    os.path.relpath(os.path.join(root, fname), start=IMAGE_ROOT)
-    for root, _dirs, files in os.walk(IMAGE_ROOT)
-    for fname in files
-    if os.path.splitext(fname)[1].lower() == ".png"
-}
-
-jsons = {
-    os.path.relpath(os.path.join(root, fname), start=LABEL_ROOT)
-    for root, _dirs, files in os.walk(LABEL_ROOT)
-    for fname in files
-    if os.path.splitext(fname)[1].lower() == ".json"
-}
-
-jsons_fn_prefix = {os.path.splitext(fname)[0] for fname in jsons}
-pngs_fn_prefix = {os.path.splitext(fname)[0] for fname in pngs}
-
-assert len(jsons_fn_prefix - pngs_fn_prefix) == 0
-assert len(pngs_fn_prefix - jsons_fn_prefix) == 0
-
-pngs = sorted(pngs)
-jsons = sorted(jsons)
-
-_filenames = np.array(pngs)
-_labelnames = np.array(jsons)
-    
-# split train-valid
-# 한 폴더 안에 한 인물의 양손에 대한 `.dcm` 파일이 존재하기 때문에
-# 폴더 이름을 그룹으로 해서 GroupKFold를 수행합니다.
-# 동일 인물의 손이 train, valid에 따로 들어가는 것을 방지합니다.
-groups = [os.path.dirname(fname) for fname in _filenames]
-
-# dummy label
-ys = [0 for fname in _filenames]
-
-# 전체 데이터의 20%를 validation data로 쓰기 위해 `n_splits`를
-# 5으로 설정하여 KFold를 수행합니다.
-gkf = GroupKFold(n_splits=5)
 
 @DATASETS.register_module()
 class XRayDataset2(BaseSegDataset):
-    def __init__(self, is_train, **kwargs):
+    def __init__(self, 
+                 is_train, 
+                 image_root='/data/ephemeral/home/data/train/DCM',
+                 label_root='/data/ephemeral/home/data/train/outputs_json',
+                 **kwargs):
+        
+        self.image_root = image_root
+        self.label_root = label_root
         self.is_train = is_train
+        
+        
+        pngs = {
+            os.path.relpath(os.path.join(root, fname), start=self.image_root)
+            for root, _dirs, files in os.walk(self.image_root)
+            for fname in files
+            if os.path.splitext(fname)[1].lower() == ".png"
+        }
+
+        jsons = {
+            os.path.relpath(os.path.join(root, fname), start=self.label_root)
+            for root, _dirs, files in os.walk(self.label_root)
+            for fname in files
+            if os.path.splitext(fname)[1].lower() == ".json"
+        }
+
+        jsons_fn_prefix = {os.path.splitext(fname)[0] for fname in jsons}
+        pngs_fn_prefix = {os.path.splitext(fname)[0] for fname in pngs}
+
+        assert len(jsons_fn_prefix - pngs_fn_prefix) == 0
+        assert len(pngs_fn_prefix - jsons_fn_prefix) == 0
+
+        self.pngs = sorted(pngs)
+        self.jsons = sorted(jsons)
         
         super().__init__(**kwargs)
         
     def load_data_list(self):
-        _filenames = np.array(pngs)
-        _labelnames = np.array(jsons)
+        _filenames = np.array(self.pngs)
+        _labelnames = np.array(self.jsons)
 
         groups = [os.path.dirname(fname) for fname in _filenames]
 
@@ -103,8 +93,8 @@ class XRayDataset2(BaseSegDataset):
         data_list = []
         for i, (img_path, ann_path) in enumerate(zip(filenames, labelnames)):
             data_info = dict(
-                img_path=os.path.join(IMAGE_ROOT, img_path),
-                seg_map_path=os.path.join(LABEL_ROOT, ann_path),
+                img_path=os.path.join(self.image_root, img_path),
+                seg_map_path=os.path.join(self.label_root, ann_path),
             )
             data_list.append(data_info)
 

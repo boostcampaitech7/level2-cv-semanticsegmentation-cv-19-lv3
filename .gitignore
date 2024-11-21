@@ -21,3 +21,6 @@ __pycache__
 
 # wandb
 wandb/
+
+# mmsegmentation 제외
+.out

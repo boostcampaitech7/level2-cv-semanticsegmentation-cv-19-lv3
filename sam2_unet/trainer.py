@@ -46,6 +46,7 @@ class Trainer:
         self.resume = resume
         self.ckpt_file = ckpt_path
         self.start_epoch = start_epoch
+        self.scaler = torch.cuda.amp.GradScaler()
         self.classes = [
             'finger-1', 'finger-2', 'finger-3', 'finger-4', 'finger-5',
             'finger-6', 'finger-7', 'finger-8', 'finger-9', 'finger-10',
@@ -68,7 +69,7 @@ class Trainer:
         eps = 0.0001
         return (2. * intersection + eps) / (torch.sum(y_true_f, -1) + torch.sum(y_pred_f, -1) + eps)
 
-    def train_epoch(self, train_loader: DataLoader):
+    def train(self, train_loader: DataLoader):
         self.model.train()
         
         train_loss = 0.
@@ -79,13 +80,16 @@ class Trainer:
             images, masks = images.to(self.device), masks.to(self.device)
             self.optimizer.zero_grad()
 
-            pred0, pred1, pred2 = self.model(images)
-            loss0 = self.loss_fn(pred0, masks)
-            loss1 = self.loss_fn(pred1, masks)
-            loss2 = self.loss_fn(pred2, masks)
-            loss = loss0 + loss1 + loss2
-            loss.backward()
-            self.optimizer.step()
+            with torch.cuda.amp.autocast():
+                pred0, pred1, pred2 = self.model(images)
+                loss0 = self.loss_fn(pred0, masks)
+                loss1 = self.loss_fn(pred1, masks)
+                loss2 = self.loss_fn(pred2, masks)
+                loss = loss0 + loss1 + loss2
+
+            self.scaler.scale(loss).backward()
+            self.scaler.step(self.optimizer)
+            self.scaler.update()
             
             train_loss += loss.item() * masks.shape[0]
 
@@ -150,7 +154,7 @@ class Trainer:
 
         return valid_loss, valid_dice
 
-    def train(self) -> None:
+    def do_train(self) -> None:
         logger = WandbLogger(name=self.wandb_name)
         logger.initialize({
             "model_type": "SAM2-UNet",
@@ -172,7 +176,7 @@ class Trainer:
             train_dice, valid_dice = 0., 0.
             print(f"Epoch {epoch+1}/{self.epochs}")
             
-            train_loss, train_dice = self.train_epoch(self.train_loader)
+            train_loss, train_dice = self.train(self.train_loader)
             train_loss = train_loss / len(self.train_loader.dataset)
 
             torch.cuda.empty_cache()
@@ -194,7 +198,7 @@ class Trainer:
                     "train_dice": train_dice,
                     "valid_loss": valid_loss,
                     "valid_dice": valid_dice,
-                    "learning_rate": self.scheduler.get_last_lr()[0]
+                    "learning_rate": self.optimizer.param_groups[0]['lr']
                 }
             )
             if (epoch + 1) % self.save_every == 0:

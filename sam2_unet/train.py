@@ -98,7 +98,7 @@ def main(cfg):
         start_epoch=cfg.start_epoch
     )
 
-    trainer.train()
+    trainer.do_train()
     
 if __name__ == "__main__":
     parser = ArgumentParser()

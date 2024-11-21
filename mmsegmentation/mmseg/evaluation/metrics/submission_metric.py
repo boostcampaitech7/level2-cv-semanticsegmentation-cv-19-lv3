@@ -35,7 +35,7 @@ PALETTE = [
     (0, 125, 92), (209, 0, 151), (188, 208, 182), (0, 220, 176),
 ]
 
-num_classes = len(CLASSES) + 1
+num_classes = len(CLASSES)
 
 
 @METRICS.register_module()
@@ -56,7 +56,7 @@ class SubmissionMetric(BaseMetric):
         os.makedirs(os.path.join(self.save_path, 'img'), exist_ok=True)
         self.cnt = 0
         self.max_vis_cnt = max_vis_cnt
-        self.multi_label=False
+        self.multi_label=multi_label
         
         # self.rles = []
         # self.filename_and_class = []
@@ -130,8 +130,6 @@ class SubmissionMetric(BaseMetric):
             img_shape = data_sample['img_shape']
             ori_shape = data_sample['ori_shape']
             
-            # if img_shape != ori_shape:
-            #     pred_label = F.interpolate(pred_label, size=ori_shape, mode="bilinear")
             pred_label = pred_label.cpu().numpy()
             
             # 시각화를 위한 세팅

@@ -30,8 +30,6 @@ from mmengine.structures import PixelData
 from mmcv.transforms import BaseTransform
 
 
-
-
 ##############################
 # 데이터 경로를 입력하세요
 
@@ -39,6 +37,8 @@ IMAGE_ROOT = "/data/ephemeral/home/data/train/DCM"
 TEST_IMAGE_ROOT = "/data/ephemeral/home/data/test/DCM"
 LABEL_ROOT = "/data/ephemeral/home/data/train/outputs_json"
 CONFIG_PATH = "/data/ephemeral/home/parkjunil/level2-cv-semanticsegmentation-cv-19-lv3/mmsegmentation/configs/_baseline_/config_for_this_example.py"
+CHECKPOINT_PATH = "/data/ephemeral/home/parkjunil/work_dir/baseline/iter_20000.pth"
+SUBMISSION_PATH = "/data/ephemeral/home/submission"
 
 CLASSES = [
     'finger-1', 'finger-2', 'finger-3', 'finger-4', 'finger-5',
@@ -200,47 +200,12 @@ def train():
     runner.train()
 
 
-def visualize():
-    cfg =load_config()
-    model = MODELS.build(cfg.model)
-    
-    checkpoint = load_checkpoint(
-        model,
-        "baseline2/iter_20000.pth",
-        map_location='cpu'
-    )
-    img = cv2.imread(os.path.join(IMAGE_ROOT, "ID001", "image1661130828152_R.png"))
-    # prepare data
-    data, is_batch = _preprare_data(img, model)
-
-    # forward the model
-    with torch.no_grad():
-        results = model.test_step(data)
-    plt.imshow(label2rgb(results[0].pred_sem_seg.data))
-
-
 def inference():
     cfg = load_config()
-    model = MODELS.build(cfg.model)
-    
-    pngs = {
-        os.path.relpath(os.path.join(root, fname), start=TEST_IMAGE_ROOT)
-        for root, _dirs, files in os.walk(IMAGE_ROOT)
-        for fname in files
-        if os.path.splitext(fname)[1].lower() == ".png"
-    }
-    
-    rles, filename_and_class = test(model, pngs)
-    classes, filename = zip(*[x.split("_") for x in filename_and_class])
-    
-    df = pd.DataFrame({
-        "image_name": filename,
-        "class": classes,
-        "rle": rles,
-    })
-    df.tail(30)
-    df.to_csv("submission.csv", index=False)
+    cfg.load_from = CHECKPOINT_PATH
+    runner = Runner.from_cfg(cfg)
+    runner.test()
 
 
 if __name__ == "__main__":
-    train()
+    inference()

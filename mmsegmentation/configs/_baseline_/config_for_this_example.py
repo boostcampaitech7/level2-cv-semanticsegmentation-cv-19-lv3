@@ -1,3 +1,4 @@
+_scope_ = ['mmengine', 'mmseg']
 # Train Segformer Mit B3
 _base_ = [
     "../_base_/models/segformer_mit-b0.py",
@@ -61,11 +62,3 @@ param_scheduler = [
 train_cfg = dict(type='IterBasedTrainLoop', max_iters=20000, val_interval=2000)
 val_cfg = dict(type='ValLoop')
 test_cfg = dict(type='TestLoop')
-default_hooks = dict(
-    timer=dict(type='IterTimerHook'),
-    logger=dict(type='LoggerHook', interval=50, log_metric_by_epoch=False),
-    param_scheduler=dict(type='ParamSchedulerHook'),
-    checkpoint=dict(type='CheckpointHook', by_epoch=False, interval=2000),
-    sampler_seed=dict(type='DistSamplerSeedHook'),
-    visualization=dict(type='SegVisualizationHook')
-)

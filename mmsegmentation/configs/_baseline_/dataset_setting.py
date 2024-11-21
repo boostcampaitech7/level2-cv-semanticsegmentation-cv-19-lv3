@@ -43,7 +43,17 @@ val_dataloader = dict(
         pipeline=val_pipeline
     )
 )
-test_dataloader = val_dataloader
+test_dataloader = dict(
+    batch_size=4,
+    num_workers=4,
+    persistent_workers=True,
+    sampler=dict(type='DefaultSampler', shuffle=False),
+    dataset=dict(
+        type='XRayDataset',
+        data_root='/data/ephemeral/home/cityscapes_format_xlay_kfold',
+        data_prefix=dict(img_path='leftImg8bit/test'),
+        img_suffix='.png',
+        pipeline=test_pipeline))
 
 val_evaluator = dict(type='DiceMetricForMultiLabel')
-test_evaluator = val_evaluator
+test_evaluator = dict(type='SubmissionMetric')

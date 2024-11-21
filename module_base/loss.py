@@ -24,12 +24,16 @@ class DiceLoss(nn.Module):
 
         dice = (2. * intersection + self.eps) / (torch.sum(preds_f, -1) + torch.sum(targets_f, -1) + self.eps)
         loss = 1 - dice
-        
+
         return loss.mean()
+
+class IoULoss(nn.Module):
+    def __init__(self, **kwargs):
+        super(IoULoss, self).__init__()
 
 class DiceBCELoss(nn.Module):
     def __init__(self, **kwargs):
-        super(DiceBCELoss, self).__init__(**kwargs)
+        super(DiceBCELoss, self).__init__()
         self.bceWithLogitLoss = nn.BCEWithLogitsLoss(**kwargs)
         self.diceLoss = DiceLoss()
 

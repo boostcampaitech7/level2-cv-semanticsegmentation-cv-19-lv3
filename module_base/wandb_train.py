@@ -18,6 +18,7 @@ from dataset import XRayDataset
 from model import ModelSelector
 from transform import TransformSelector
 from loss import LossSelector
+from scheduler import SchedulerSelector
 
 import warnings
 warnings.filterwarnings('ignore')
@@ -111,7 +112,7 @@ def validation(epoch, model, val_loader, criterion, model_type, thr=0.5):
     
     return avg_dice, val_loss
 
-def train(model, train_loader, val_loader, criterion, optimizer, cfg):
+def train(model, train_loader, val_loader, criterion, optimizer, scheduler, cfg):
     print(f'Start training..')
     logger = WandbLogger(name=cfg.wandb_run_name)
     
@@ -158,6 +159,7 @@ def train(model, train_loader, val_loader, criterion, optimizer, cfg):
                     f'Step [{step+1}/{len(train_loader)}], '
                     f'Loss: {round(loss.item(),4)}'
                 )
+        scheduler.step()
         epoch_time = datetime.timedelta(seconds=time.time() - epoch_start)
         dataset_size = len(train_loader.dataset)
         epoch_loss = epoch_loss / dataset_size
@@ -231,8 +233,11 @@ def main(cfg):
     criterion = loss.get_loss()
 
     optimizer = optim.Adam(params=model.parameters(), lr=cfg.lr, weight_decay=cfg.weight_decay)
+
+    sched = SchedulerSelector(cfg.scheduler, optimizer, cfg.max_epoch)
+    scheduler = sched.get_sched()
     
-    train(model, train_loader, valid_loader, criterion, optimizer, cfg)
+    train(model, train_loader, valid_loader, criterion, optimizer, scheduler, cfg)
 
 if __name__ == '__main__':
     parser = ArgumentParser()

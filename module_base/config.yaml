@@ -23,11 +23,14 @@ max_epoch: 50
 
 # loss
 loss:
-    name: DiceBCELoss
+    name: BCEWithLogitsLoss
     params: null
 
 # optimizer
 optim: Adam
+
+# scheduler
+scheduler: cosine
 
 # validation 인자
 kfold: 0

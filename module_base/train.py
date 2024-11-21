@@ -17,6 +17,7 @@ from dataset import XRayDataset
 from model import ModelSelector
 from transform import TransformSelector
 from loss import LossSelector
+from scheduler import SchedulerSelector
 
 import warnings
 warnings.filterwarnings('ignore')
@@ -138,7 +139,7 @@ def train(model, train_loader, val_loader, criterion, optimizer, save_dir, rando
             scaler.update()
             
             # step 주기에 따라 loss를 출력합니다.
-            if (step + 1) % 25 == 0:
+            if (step + 1) % 80 == 0:
                 print(
                     f'{datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")} | '
                     f'Epoch [{epoch+1}/{max_epoch}], '

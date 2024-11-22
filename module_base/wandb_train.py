@@ -159,7 +159,7 @@ def train(model, train_loader, val_loader, criterion, optimizer, scheduler, cfg)
                     f'Step [{step+1}/{len(train_loader)}], '
                     f'Loss: {round(loss.item(),4)}'
                 )
-        # scheduler.step()
+        scheduler.step()
         epoch_time = datetime.timedelta(seconds=time.time() - epoch_start)
         dataset_size = len(train_loader.dataset)
         epoch_loss = epoch_loss / dataset_size
@@ -225,7 +225,6 @@ def main(cfg):
     )
     model = model_selector.get_model()
     
-    # criterion = nn.BCEWithLogitsLoss()
     if cfg.loss.params:
         loss = LossSelector(cfg.loss.name, **cfg.loss.params)
     else:

@@ -1,12 +1,9 @@
-import torchvision.transforms.functional as F
 import numpy as np
-import random
 import os
 import cv2
 import json
 import torch
 from PIL import Image
-from torchvision.transforms import InterpolationMode
 from torch.utils.data import Dataset
 from sklearn.model_selection import GroupKFold
 
@@ -19,58 +16,6 @@ CLASSES = [
     'Triquetrum', 'Pisiform', 'Radius', 'Ulna',
 ]
 CLASS2IND = {v: i for i, v in enumerate(CLASSES)}
-
-class ToTensor(object):
-
-    def __call__(self, data):
-        image, label = data['image'], data['label']
-        return {'image': F.to_tensor(image), 'label': F.to_tensor(label)}
-
-class Resize(object):
-
-    def __init__(self, size):
-        self.size = size
-
-    def __call__(self, data):
-        image, label = data['image'], data['label']
-
-        return {'image': F.resize(image, self.size), 'label': F.resize(label, self.size, interpolation=InterpolationMode.BICUBIC)}
-
-
-class RandomHorizontalFlip(object):
-    def __init__(self, p=0.5):
-        self.p = p
-
-    def __call__(self, data):
-        image, label = data['image'], data['label']
-
-        if random.random() < self.p:
-            return {'image': F.hflip(image), 'label': F.hflip(label)}
-
-        return {'image': image, 'label': label}
-
-class RandomVerticalFlip(object):
-    def __init__(self, p=0.5):
-        self.p = p
-
-    def __call__(self, data):
-        image, label = data['image'], data['label']
-
-        if random.random() < self.p:
-            return {'image': F.vflip(image), 'label': F.vflip(label)}
-
-        return {'image': image, 'label': label}
-
-class Normalize(object):
-    def __init__(self, mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]):
-        self.mean = mean
-        self.std = std
-
-    def __call__(self, sample):
-        image, label = sample['image'], sample['label']
-        image = F.normalize(image, self.mean, self.std)
-        return {'image': image, 'label': label}
-    
 
 class FullDataset(Dataset):
     def __init__(self, image_root, gt_root, is_train=True, transforms=None, kfold=5, k=0):

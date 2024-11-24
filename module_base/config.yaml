@@ -11,7 +11,7 @@ encoder_weights: imagenet
 pretrained: True
 
 # batch_size
-train_batch_size: 2
+train_batch_size: 4
 valid_batch_size: 4
 
 # hyperparameter
@@ -19,11 +19,11 @@ lr: 2e-4
 weight_decay: 1e-6
 train_num_workers: 8
 valid_num_workers: 0
-max_epoch: 50
+max_epoch: 60
 
 # loss
 loss:
-    name: BCEWithLogitsLoss
+    name: DiceFocalLoss
     params: null
 
 # optimizer
@@ -44,5 +44,5 @@ random_seed: 2024
 size: 1024
 
 # wandb
-wandb_run_name: Test
+wandb_run_name: smp_unet++_efficientnetv2_xl_DiceBCELoss_cosine_flip+rotate
 wandb_run_id: None

@@ -152,7 +152,7 @@ def train(model, train_loader, val_loader, criterion, optimizer, scheduler, cfg)
             scaler.update()
             
             # step 주기에 따라 loss를 출력합니다.
-            if (step + 1) % 25 == 0:
+            if (step + 1) % 80 == 0:
                 print(
                     f'{datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")} | '
                     f'Epoch [{epoch+1}/{cfg.max_epoch}], '
@@ -225,7 +225,6 @@ def main(cfg):
     )
     model = model_selector.get_model()
     
-    # criterion = nn.BCEWithLogitsLoss()
     if cfg.loss.params:
         loss = LossSelector(cfg.loss.name, **cfg.loss.params)
     else:

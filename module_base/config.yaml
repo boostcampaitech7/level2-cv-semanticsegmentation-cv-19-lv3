@@ -44,5 +44,5 @@ random_seed: 2024
 size: 1024
 
 # wandb
-wandb_run_name: smp_unet++_efficientnetv2_xl_DiceBCELoss_cosine_flip+rotate
+wandb_run_name: smp_unet++_hrnet64_DiceFocalLoss_cosine_flip+rotate
 wandb_run_id: None

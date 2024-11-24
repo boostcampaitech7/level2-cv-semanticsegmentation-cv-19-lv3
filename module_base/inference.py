@@ -101,7 +101,7 @@ def do_inference(image_root, save_dir, random_seed, model_type):
         for fname in files
         if os.path.splitext(fname)[1].lower() == ".png"
     }
-    model = torch.load(os.path.join(save_dir, "smp_unet++_hrnetW64_best.pt"))
+    model = torch.load(os.path.join(save_dir, "best_model.pt"))
     
     test_trans = TransformSelector('albumentation')
     test_tf = test_trans.get_transform(False, 1024)
@@ -127,7 +127,7 @@ def do_inference(image_root, save_dir, random_seed, model_type):
         "rle": rles,
     })
     
-    df.to_csv("smp_unet++_hrnetW64_best.csv", index=False)
+    df.to_csv("best_hrnet2.csv", index=False)
 
 def main(args):
     do_inference(**args.__dict__)

@@ -29,11 +29,19 @@ model = dict(
         type='SegformerHeadWithoutAccuracy',
         in_channels=[64, 128, 320, 512],
         num_classes=29,
-        loss_decode=dict(
-            type='CrossEntropyLoss',
-            use_sigmoid=True,
-            loss_weight=1.0,
-        ),
+        threshold=0.5,
+        loss_decode=[
+            dict(
+                type='CrossEntropyLoss',
+                use_sigmoid=True,
+                loss_weight=1.0
+            ),
+            dict(
+                type='DiceLoss',
+                use_sigmoid=True,
+                loss_weight=1.0
+            )
+        ]
     ),
 )
 

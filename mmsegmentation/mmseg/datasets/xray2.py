@@ -129,6 +129,7 @@ class LoadXRayAnnotations(BaseTransform):
             label[..., class_ind] = class_label
 
         result["gt_seg_map"] = label
+        result['seg_fields'] = ['gt_seg_map']
 
         return result
     

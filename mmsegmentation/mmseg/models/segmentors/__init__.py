@@ -4,10 +4,11 @@ from .cascade_encoder_decoder import CascadeEncoderDecoder
 from .depth_estimator import DepthEstimator
 from .encoder_decoder import EncoderDecoder
 from .multimodal_encoder_decoder import MultimodalEncoderDecoder
-from .seg_tta import SegTTAModel
+from .seg_tta import SegTTAModel, SegTTAModelWithoutArgMax
 from .custom import EncoderDecoderWithoutArgmax
 
 __all__ = [
     'BaseSegmentor', 'EncoderDecoder', 'CascadeEncoderDecoder', 'SegTTAModel',
-    'MultimodalEncoderDecoder', 'DepthEstimator', 'EncoderDecoderWithoutArgmax'
+    'MultimodalEncoderDecoder', 'DepthEstimator', 'EncoderDecoderWithoutArgmax',
+    'SegTTAModelWithoutArgMax'
 ]

@@ -2359,7 +2359,7 @@ class Albu(BaseTransform):
         self.bgr_to_rgb = bgr_to_rgb
 
         self.aug = Compose([self.albu_builder(t) for t in self.transforms],
-                           additional_targets=self.additional_targets)
+                           additional_targets=self.additional_targets, is_check_shapes=False)
 
         if not keymap:
             self.keymap_to_albu = {'img': 'image', 'gt_seg_map': 'mask'}
@@ -2435,7 +2435,14 @@ class Albu(BaseTransform):
                                                     cv2.COLOR_BGR2RGB)
 
         # Apply Transform
-        results = self.aug(**results)
+        target_keys = ['image', 'mask']
+        filtered_dict = {key: results[key] for key in target_keys if key in results}
+        filtered_dict = self.aug(**filtered_dict)
+        
+        for k in target_keys:
+            results[k] = filtered_dict[k]
+        del filtered_dict
+        
 
         # Convert back to BGR
         if self.bgr_to_rgb:

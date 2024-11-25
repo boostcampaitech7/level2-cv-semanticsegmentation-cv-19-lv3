@@ -27,7 +27,7 @@ loss:
     params: null
 
 # optimizer
-optim: AdamW
+optim: Adam
 
 # scheduler
 scheduler: cosine
@@ -41,8 +41,8 @@ threshold: 0.5
 random_seed: 2024
 
 # resize
-size: 1024
+size: 512
 
 # wandb
-wandb_run_name: smp_unet++_hrnet64_DiceBCELoss_cosine_flip+rotate_adamW_batch2
+wandb_run_name: smp_unet++_vgg19_DiceBCELoss_cosine_flip+rotate_adam_2048
 wandb_run_id: None

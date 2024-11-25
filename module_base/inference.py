@@ -127,7 +127,7 @@ def do_inference(image_root, save_dir, random_seed, model_type):
         "rle": rles,
     })
     
-    df.to_csv("best_hrnet2.csv", index=False)
+    df.to_csv("best_hrnet_adamw.csv", index=False)
 
 def main(args):
     do_inference(**args.__dict__)

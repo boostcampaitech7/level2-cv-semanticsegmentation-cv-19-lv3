@@ -8,7 +8,7 @@ class AlbumentationTransform:
             self.transform = A.Compose(
                 [
                     A.HorizontalFlip(0.2),
-                    A.Rotate(limit=(-15, 15), p=0.5)
+                    A.Rotate(limit=(-15, 15), p=0.5),
                     # A.CLAHE(clip_limit=4.0, tile_grid_size=(8, 8), always_apply=False, p=1.0)
                 ]+ common_transform)
         else:

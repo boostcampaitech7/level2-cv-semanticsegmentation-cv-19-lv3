@@ -6,12 +6,10 @@ import datetime
 
 import numpy as np
 from tqdm.auto import tqdm
-import albumentations as A
 
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-import torch.optim as optim
 from torch.utils.data import DataLoader
 
 from dataset import XRayDataset
@@ -19,6 +17,7 @@ from model import ModelSelector
 from transform import TransformSelector
 from loss import LossSelector
 from scheduler import SchedulerSelector
+from optimizer import OptimizerSelector
 
 import warnings
 warnings.filterwarnings('ignore')
@@ -30,7 +29,7 @@ from wandb_logger import WandbLogger
 def set_seed(random_seed):
     torch.manual_seed(random_seed)
     torch.cuda.manual_seed(random_seed)
-    torch.cuda.manual_seed_all(random_seed) # if use multi-GPU
+    torch.cuda.manual_seed_all(random_seed)
     torch.backends.cudnn.deterministic = True
     torch.backends.cudnn.benchmark = False
     np.random.seed(random_seed)
@@ -231,7 +230,8 @@ def main(cfg):
         loss = LossSelector(cfg.loss.name)
     criterion = loss.get_loss()
 
-    optimizer = optim.Adam(params=model.parameters(), lr=cfg.lr, weight_decay=cfg.weight_decay)
+    optim = OptimizerSelector(cfg.optim, model, cfg.lr, cfg.weight_decay)
+    optimizer = optim.get_optim()
 
     sched = SchedulerSelector(cfg.scheduler, optimizer, cfg.max_epoch)
     scheduler = sched.get_sched()

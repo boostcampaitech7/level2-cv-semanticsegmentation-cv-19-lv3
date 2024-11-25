@@ -30,7 +30,7 @@ from wandb_logger import WandbLogger
 def set_seed(random_seed):
     torch.manual_seed(random_seed)
     torch.cuda.manual_seed(random_seed)
-    torch.cuda.manual_seed_all(random_seed) # if use multi-GPU
+    torch.cuda.manual_seed_all(random_seed)
     torch.backends.cudnn.deterministic = True
     torch.backends.cudnn.benchmark = False
     np.random.seed(random_seed)
@@ -231,7 +231,7 @@ def main(cfg):
         loss = LossSelector(cfg.loss.name)
     criterion = loss.get_loss()
 
-    optimizer = optim.Adam(params=model.parameters(), lr=cfg.lr, weight_decay=cfg.weight_decay)
+    optimizer = optim.AdamW(params=model.parameters(), lr=cfg.lr, weight_decay=cfg.weight_decay)
 
     sched = SchedulerSelector(cfg.scheduler, optimizer, cfg.max_epoch)
     scheduler = sched.get_sched()

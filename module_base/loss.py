@@ -27,7 +27,7 @@ class DiceLoss(nn.Module):
         return loss.mean()
 
 class FocalLoss(nn.Module):
-    def __init__(self, alpha=0.25, gamma=2):
+    def __init__(self, alpha=0.4, gamma=1):
         super(FocalLoss, self).__init__()
         self.alpha = alpha # 각 클래스에 대한 가중치 조정
         self.gamma = gamma # Easy sample에 대한 loss 조절 (커질수록 loss가 줄어듦)
@@ -39,7 +39,6 @@ class FocalLoss(nn.Module):
         loss = self.alpha * (1-BCE_EXP)**self.gamma * BCE
 
         return loss
-
 
 class DiceBCELoss(nn.Module):
     def __init__(self, **kwargs):

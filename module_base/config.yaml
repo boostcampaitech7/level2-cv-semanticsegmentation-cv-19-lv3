@@ -11,7 +11,7 @@ encoder_weights: imagenet
 pretrained: True
 
 # batch_size
-train_batch_size: 4
+train_batch_size: 2
 valid_batch_size: 4
 
 # hyperparameter
@@ -19,15 +19,15 @@ lr: 2e-4
 weight_decay: 1e-6
 train_num_workers: 8
 valid_num_workers: 0
-max_epoch: 60
+max_epoch: 50
 
 # loss
 loss:
-    name: DiceFocalLoss
+    name: DiceBCELoss
     params: null
 
 # optimizer
-optim: Adam
+optim: AdamW
 
 # scheduler
 scheduler: cosine
@@ -44,5 +44,5 @@ random_seed: 2024
 size: 1024
 
 # wandb
-wandb_run_name: smp_unet++_hrnet64_DiceFocalLoss_cosine_flip+rotate
+wandb_run_name: smp_unet++_hrnet64_DiceBCELoss_cosine_flip+rotate_adamW_batch2
 wandb_run_id: None

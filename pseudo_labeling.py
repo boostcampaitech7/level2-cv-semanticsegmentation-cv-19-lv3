@@ -22,8 +22,8 @@ def decode_rle_to_polygon(rle, img_width=2048, img_height=2048):
     
     polygons = []
     for contour in contours:
-        polygon = [[int(point[0][0]), int(point[0][1])] for point in contour]
-        polygons.append(polygon)
+        for point in contour:
+            polygons.append([int(point[0][0]), int(point[0][1])])
 
     return polygons
 

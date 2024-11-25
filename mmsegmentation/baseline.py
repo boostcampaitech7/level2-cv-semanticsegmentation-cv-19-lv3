@@ -5,10 +5,10 @@ from mmengine.runner import Runner
 ##############################
 # 데이터 경로를 입력하세요
 
-CONFIG_PATH = "/data/ephemeral/home/parkjunil/level2-cv-semanticsegmentation-cv-19-lv3/mmsegmentation/configs/_baseline_/config_for_this_example.py"
+CONFIG_PATH = "/data/ephemeral/home/parkjunil/level2-cv-semanticsegmentation-cv-19-lv3/mmsegmentation/configs/_custom_/hrnet/fcn_hr18s_4xb2-40k_cityscapes-512x1024.py"
 CHECKPOINT_PATH = "/data/ephemeral/home/parkjunil/work_dir/baseline_dice_1480_hflip/best_mDice_iter_16000.pth"
 SUBMISSION_PATH = "/data/ephemeral/home/submission"
-WORK_DIR = "/data/ephemeral/home/parkjunil/work_dir/baseline_dice_1480_hflip"
+WORK_DIR = "/data/ephemeral/home/parkjunil/work_dir/hrnet18_fpn_2048_noaug"
 TTA = True
 
 
@@ -25,7 +25,6 @@ def load_config():
 def train():
     # load config
     cfg =load_config()
-    
     runner = Runner.from_cfg(cfg)
 
     # start training
@@ -46,4 +45,4 @@ def inference():
 
 
 if __name__ == "__main__":
-    inference()
+    train()

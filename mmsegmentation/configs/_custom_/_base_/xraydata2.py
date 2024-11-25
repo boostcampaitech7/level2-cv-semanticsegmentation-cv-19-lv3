@@ -1,4 +1,4 @@
-IMAGE_SIZE = (1480, 1480)
+IMAGE_SIZE = (2048, 2048)
 IMAGE_ROOT = '/data/ephemeral/home/data/train/DCM'
 LABEL_ROOT = '/data/ephemeral/home/data/train/outputs_json'
 SUBMISSION_PATH = '/data/ephemeral/home/submission'
@@ -11,7 +11,6 @@ train_pipeline = [
             dict(type='LoadImageFromFile'),
             dict(type='LoadXRayAnnotations'),
             dict(type='Resize', scale=IMAGE_SIZE),
-            dict(type='RandomFlip', prob=0.5, direction='horizontal'),
             dict(type='TransposeAnnotations'),
             dict(type='PackSegInputs')
         ]

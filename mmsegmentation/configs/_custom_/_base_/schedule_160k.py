@@ -1,4 +1,4 @@
-val_save_interval = 1000
+val_save_interval = 2000
 warm_up_step = 1000
 max_iters = 30000
 T_max = max_iters-warm_up_step

@@ -1,6 +1,6 @@
 # paths
-train_image_path: /data/ephemeral/home/data_v2/train/DCM
-train_mask_path: /data/ephemeral/home/data_v2/train/outputs_json
+train_image_path: /data/ephemeral/home/data/train/DCM
+train_mask_path: /data/ephemeral/home/data/train/outputs_json
 test_image_path: /data/ephemeral/home/data/test/DCM
 hiera_path: /data/ephemeral/home/sam2_hiera_large.pt
 
@@ -17,9 +17,11 @@ threshold: 0.5
 valid_every: 2
 
 # hyperparameter
+random_seed: 2024
 lr: 2e-4
 max_epoch: 40
 smooth_factor: 0
+scaler: False
 
 # optimizer
 optimizer: adamw
@@ -45,10 +47,6 @@ scheduler_parameters:
   # factor: 0.1
   # patience: 5
 
-
-# random seed 
-random_seed: 2024
-
 # save
 save_every: 5
 
@@ -61,5 +59,4 @@ wandb_id:
 
 # resume
 resume: False
-ckpt_path: ./checkpoints/
-start_epoch: 0
+ckpt_path: ./checkpoints/checkpoint.pth

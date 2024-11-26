@@ -76,7 +76,6 @@ def main(cfg):
     # Config 저장
     save_path = os.path.join(save_dir, "config.yaml")
     OmegaConf.save(cfg, save_path)
-
     print(f"Config saved at {save_path}")
 
     trainer = Trainer(
@@ -97,9 +96,7 @@ def main(cfg):
         wandb_name=cfg.wandb_name,
         resume=cfg.resume,
         ckpt_path=cfg.ckpt_path,
-        start_epoch=cfg.start_epoch
     )
-
     trainer.do_train()
     
 if __name__ == "__main__":

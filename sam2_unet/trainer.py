@@ -23,14 +23,14 @@ class Trainer:
         smooth_factor,
         epochs,
         threshold,
+        scaler,
         save_dir,
         save_every,
         valid_every,
         wandb_id,
         wandb_name,
         resume=False,
-        ckpt_path="",
-        start_epoch=0
+        ckpt_path=""
         ):
         self.model = model
         self.device = device
@@ -49,8 +49,11 @@ class Trainer:
         self.wandb_name = wandb_name
         self.resume = resume
         self.ckpt_file = ckpt_path
-        self.start_epoch = start_epoch
-        self.scaler = torch.cuda.amp.GradScaler()
+        self.start_epoch = 0
+        if scaler:
+            self.scaler = torch.cuda.amp.GradScaler()
+        else:
+            self.scaler = None
         self.classes = [
             'finger-1', 'finger-2', 'finger-3', 'finger-4', 'finger-5',
             'finger-6', 'finger-7', 'finger-8', 'finger-9', 'finger-10',
@@ -61,9 +64,9 @@ class Trainer:
         ]
 
     def save_checkpoint_epoch(self, epoch: int, valid_loss: float, valid_dice: float) -> None:
-        ckpt_path = os.path.join(self.save_dir, f'epoch-{epoch + 1}-loss-{valid_loss:.4f}-dice-{valid_dice:.4f}.pth')
-        save_checkpoint(self.model, self.optimizer, self.scheduler, epoch+1, valid_dice, ckpt_path)
-        print(f"Checkpoint updated at epoch {epoch + 1} and saved as {ckpt_path}")
+        ckpt_path = os.path.join(self.save_dir, f'epoch-{epoch+1}-loss-{valid_loss:.4f}-dice-{valid_dice:.4f}.pth')
+        save_checkpoint(ckpt_path, self.model, self.optimizer, self.scheduler, epoch+1)
+        print(f"Checkpoint updated at epoch {epoch+1} and saved as {ckpt_path}")
     
     def dice_coef(self, y_true, y_pred):
         y_true_f = y_true.flatten(2)
@@ -84,18 +87,27 @@ class Trainer:
             images, masks = images.to(self.device), masks.to(self.device)
             self.optimizer.zero_grad()
 
-            # with torch.cuda.amp.autocast():
-            pred0, pred1, pred2 = self.model(images)
-            loss0 = self.loss_fn(pred0, masks, self.smooth_factor)
-            loss1 = self.loss_fn(pred1, masks, self.smooth_factor)
-            loss2 = self.loss_fn(pred2, masks, self.smooth_factor)
-            loss = loss0 + loss1 + loss2
+            if self.scaler:
+                with torch.cuda.amp.autocast():
+                    pred0, pred1, pred2 = self.model(images)
+                    loss0 = self.loss_fn(pred0, masks, self.smooth_factor)
+                    loss1 = self.loss_fn(pred1, masks, self.smooth_factor)
+                    loss2 = self.loss_fn(pred2, masks, self.smooth_factor)
+                    loss = loss0 + loss1 + loss2
 
-            # self.scaler.scale(loss).backward()
-            # self.scaler.step(self.optimizer)
-            # self.scaler.update()
-            loss.backward()
-            self.optimizer.step()
+                self.scaler.scale(loss).backward()
+                self.scaler.step(self.optimizer)
+                self.scaler.update()
+
+            if not self.scaler:
+                pred0, pred1, pred2 = self.model(images)
+                loss0 = self.loss_fn(pred0, masks, self.smooth_factor)
+                loss1 = self.loss_fn(pred1, masks, self.smooth_factor)
+                loss2 = self.loss_fn(pred2, masks, self.smooth_factor)
+                loss = loss0 + loss1 + loss2
+                
+                loss.backward()
+                self.optimizer.step()
             
             train_loss += loss.item() * masks.shape[0]
 
@@ -216,7 +228,7 @@ class Trainer:
     def load_settings(self) -> None:
         print("loading prev training setttings")
         try:
-            self.epochs, self.model, self.optimizer, self.scheduler, self.loss = load_checkpoint(self.ckpt_path, self.model, self.optimizer, self.scheduler)
+            self.model, self.optimizer, self.scheduler, self.start_epochs = load_checkpoint(self.ckpt_path, self.model, self.optimizer, self.scheduler)
             print("loading successful")
         except:
             raise Exception('loading failed')

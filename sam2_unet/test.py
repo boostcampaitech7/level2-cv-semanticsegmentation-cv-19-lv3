@@ -1,13 +1,12 @@
-import argparse
 import os
-import torch
+import argparse
 import numpy as np
 import pandas as pd
+import torch
 import torch.nn.functional as F
 from torch.utils.data import DataLoader
 from utils.dataset import TestDataset
 from utils.transform import TransformSelector
-from utils.checkpoint import load_checkpoint
 from tqdm.auto import tqdm
 from SAM2UNet import SAM2UNet
 
@@ -17,6 +16,7 @@ parser.add_argument("--checkpoint", type=str, required=True,
 parser.add_argument("--test_image_path", type=str, default="/data/ephemeral/home/data/test/DCM",
                     help="path to the image files for testing")
 parser.add_argument("--image_size", type=int, default=1024)
+parser.add_argument("--save_file", type=str, default='output.csv')
 args = parser.parse_args()
 
 def encode_mask_to_rle(mask):
@@ -69,7 +69,6 @@ def test(model, args, thr=0.5):
         batch_size=2,
         shuffle=False,
         num_workers=2,
-        drop_last=False
     )
 
     model.eval()
@@ -108,9 +107,12 @@ def main(args):
         "class": classes,
         "rle": rles,
     })
-    df.to_csv("./outputs/output.csv", index=False)
+    
+    save_file = args.save_file
+    if len(save_file) < 5 or save_file[-4:] != '.csv':
+        save_file += '.csv'
+    save_path = os.path.join('./outputs', save_file)
+    df.to_csv(save_path, index=False)
 
 if __name__ == "__main__":
     main(args)
-
-# python test.py --checkpoint <checkpoint_path>  

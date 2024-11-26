@@ -20,10 +20,12 @@ class Trainer:
         optimizer,
         scheduler,
         loss_fn,
+        smooth_factor,
         epochs,
         threshold,
         save_dir,
         save_every,
+        valid_every,
         wandb_id,
         wandb_name,
         resume=False,
@@ -37,10 +39,12 @@ class Trainer:
         self.optimizer = optimizer
         self.scheduler = scheduler
         self.loss_fn = loss_fn
+        self.smooth_factor = smooth_factor
         self.epochs = epochs
         self.threshold = threshold
         self.save_dir = save_dir
         self.save_every = save_every
+        self.valid_every = valid_every
         self.wandb_id = wandb_id
         self.wandb_name = wandb_name
         self.resume = resume
@@ -80,16 +84,18 @@ class Trainer:
             images, masks = images.to(self.device), masks.to(self.device)
             self.optimizer.zero_grad()
 
-            with torch.cuda.amp.autocast():
-                pred0, pred1, pred2 = self.model(images)
-                loss0 = self.loss_fn(pred0, masks)
-                loss1 = self.loss_fn(pred1, masks)
-                loss2 = self.loss_fn(pred2, masks)
-                loss = loss0 + loss1 + loss2
+            # with torch.cuda.amp.autocast():
+            pred0, pred1, pred2 = self.model(images)
+            loss0 = self.loss_fn(pred0, masks, self.smooth_factor)
+            loss1 = self.loss_fn(pred1, masks, self.smooth_factor)
+            loss2 = self.loss_fn(pred2, masks, self.smooth_factor)
+            loss = loss0 + loss1 + loss2
 
-            self.scaler.scale(loss).backward()
-            self.scaler.step(self.optimizer)
-            self.scaler.update()
+            # self.scaler.scale(loss).backward()
+            # self.scaler.step(self.optimizer)
+            # self.scaler.update()
+            loss.backward()
+            self.optimizer.step()
             
             train_loss += loss.item() * masks.shape[0]
 
@@ -129,7 +135,7 @@ class Trainer:
                 if output_h != mask_h or output_w != mask_w:
                     outputs = F.interpolate(outputs, size=(mask_h, mask_w), mode="bilinear")
             
-                loss = self.loss_fn(outputs, masks)
+                loss = self.loss_fn(outputs, masks, self.smooth_factor)
                 valid_loss += loss.item() * masks.shape[0]
 
                 outputs = torch.sigmoid(outputs)
@@ -180,8 +186,9 @@ class Trainer:
             train_loss = train_loss / len(self.train_loader.dataset)
 
             torch.cuda.empty_cache()
-            valid_loss, valid_dice = self.validate(self.valid_loader)
-            valid_loss = valid_loss / len(self.valid_loader.dataset)
+            if epoch % self.valid_every == 0:
+                valid_loss, valid_dice = self.validate(self.valid_loader)
+                valid_loss = valid_loss / len(self.valid_loader.dataset)
 
             if isinstance(self.scheduler, ReduceLROnPlateau):
                 self.scheduler.step(valid_loss)

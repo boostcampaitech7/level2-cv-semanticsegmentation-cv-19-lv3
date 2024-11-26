@@ -16,7 +16,7 @@ parser.add_argument("--checkpoint", type=str, required=True,
                     help="path to the checkpoint of sam2-unet")
 parser.add_argument("--test_image_path", type=str, default="/data/ephemeral/home/data/test/DCM",
                     help="path to the image files for testing")
-parser.add_argument("--image_size", type=int, default=512)
+parser.add_argument("--image_size", type=int, default=1024)
 args = parser.parse_args()
 
 def encode_mask_to_rle(mask):

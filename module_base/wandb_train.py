@@ -144,12 +144,24 @@ def train(model, train_loader, val_loader, criterion, optimizer, scheduler, cfg)
                 elif cfg.model_type == 'smp':
                     outputs = model(images)
                 loss = criterion(outputs, masks)
+                # 아래 부터는 gradient accumulation
+                loss = loss / cfg.step
+            '''
             # 스케일된 loss를 사용해 backward 및 optimizer step
             optimizer.zero_grad()
             scaler.scale(loss).backward()
             scaler.step(optimizer)
             scaler.update()
-            
+            '''
+            scaler.scale(loss).backward()
+            epoch_loss += loss.item() * cfg.step
+
+            # gradient accumulation
+            if (step + 1) % cfg.step == 0:
+                scaler.step(optimizer)
+                scaler.update()
+                optimizer.zero_grad()
+
             # step 주기에 따라 loss를 출력합니다.
             if (step + 1) % 80 == 0:
                 print(
@@ -159,26 +171,21 @@ def train(model, train_loader, val_loader, criterion, optimizer, scheduler, cfg)
                     f'Loss: {round(loss.item(),4)}'
                 )
         scheduler.step()
-        epoch_time = datetime.timedelta(seconds=time.time() - epoch_start)
-        dataset_size = len(train_loader.dataset)
-        epoch_loss = epoch_loss / dataset_size
         # validation 주기에 따라 loss를 출력하고 best model을 저장합니다.
         if (epoch + 1) % cfg.val_every == 0:
             dice, val_loss = validation(epoch + 1, model, val_loader, criterion, cfg.model_type)
-            
             if best_dice < dice:
-                print(f"Best performance at epoch: {epoch + 1}, {best_dice:.4f} -> {dice:.4f}")
-                print(f"Save model in {cfg.save_dir}")
                 best_dice = dice
                 ckpt_path = save_model(model, cfg.save_dir)
+                print(f"Best performance at epoch: {epoch + 1}, {best_dice:.4f} -> {dice:.4f}")
+                print(f"Save model in {cfg.save_dir}")
             logger.log_model(ckpt_path, f'model-epoch-{epoch+1}')
             logger.log_epoch_metrics(
                 {
                     "epoch": epoch,
-                    "loss": epoch_loss,
+                    "loss": epoch_loss / len(train_loader.dataset),
                     "dice": dice,
-                    "val_loss": val_loss,
-                    "epoch_time": epoch_time.total_seconds()
+                    "val_loss": val_loss
                 }
             )
     logger.finish()

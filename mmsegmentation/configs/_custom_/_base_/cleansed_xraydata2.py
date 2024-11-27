@@ -1,4 +1,4 @@
-IMAGE_SIZE = (1536, 1536)
+IMAGE_SIZE = (1580, 1580)
 IMAGE_ROOT = '/data/ephemeral/home/cleansed_data/train/DCM'
 LABEL_ROOT = '/data/ephemeral/home/cleansed_data/train/outputs_json'
 SUBMISSION_PATH = '/data/ephemeral/home/submission'

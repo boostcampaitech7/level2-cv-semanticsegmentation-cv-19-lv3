@@ -70,7 +70,12 @@ class SegTTAModelWithoutArgMax(BaseTTAModel):
                 logits += seg_logit
             logits /= len(data_samples)
             
-            seg_pred = (logits > self.module.decode_head.threshold
+            if self.module.decode_head.threshold:
+                threshold = self.module.decode_head.threshold
+            else:
+                threshold = 0.5
+            
+            seg_pred = (logits > threshold
                         ).to(logits)
             data_sample.set_data({'pred_sem_seg': PixelData(data=seg_pred)})
             if hasattr(data_samples[0], 'gt_sem_seg'):

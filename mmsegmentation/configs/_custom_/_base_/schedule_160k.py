@@ -10,7 +10,7 @@ optim_wrapper = dict(
     type='AmpOptimWrapper',
     optimizer=optimizer,
     clip_grad=dict(max_norm=0.01, norm_type=2),
-    accumulative_counts=4
+    accumulative_counts=2
     )
 
 # mixed precision

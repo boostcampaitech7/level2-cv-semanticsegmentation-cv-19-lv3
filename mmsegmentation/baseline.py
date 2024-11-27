@@ -5,11 +5,11 @@ from mmengine.runner import Runner
 ##############################
 # 데이터 경로를 입력하세요
 
-CONFIG_PATH = "/data/ephemeral/home/parkjunil/level2-cv-semanticsegmentation-cv-19-lv3/mmsegmentation/configs/_custom_/hrnet/fcn_hr18s_4xb2-40k_cityscapes-512x1024.py"
-CHECKPOINT_PATH = "/data/ephemeral/home/parkjunil/work_dir/baseline_dice_1480_hflip/best_mDice_iter_16000.pth"
+CONFIG_PATH = "/data/ephemeral/home/parkjunil/level2-cv-semanticsegmentation-cv-19-lv3/mmsegmentation/configs/_baseline_/config_for_this_example.py"
+CHECKPOINT_PATH = "/data/ephemeral/home/parkjunil/work_dir/hrnet18_upernet_2048_elas_rotate_hflip_whole/best_mDice_iter_18000.pth"
 SUBMISSION_PATH = "/data/ephemeral/home/submission"
-WORK_DIR = "/data/ephemeral/home/parkjunil/work_dir/hrnet18_fpn_2048_noaug"
-TTA = True
+WORK_DIR = "/data/ephemeral/home/parkjunil/work_dir/hrnet18_upernet_2048_elas_rotate_hflip_whole_inference"
+TTA = False
 
 
 def load_config():
@@ -25,6 +25,7 @@ def load_config():
 def train():
     # load config
     cfg =load_config()
+    # cfg.load_from = CHECKPOINT_PATH
     runner = Runner.from_cfg(cfg)
 
     # start training
@@ -39,6 +40,15 @@ def inference():
         cfg.tta_model.module = cfg.model
         cfg.model = cfg.tta_model
     
+    # inference시에는 wandb 비활성화
+    cfg.vis_backends = [dict(type='LocalVisBackend')]
+    cfg.log_config = dict(
+        interval=1,
+        hooks=[
+            dict(type='TextLoggerHook', by_epoch=False)
+        ]
+        )
+    
     
     runner = Runner.from_cfg(cfg)
     runner.test()
@@ -46,3 +56,4 @@ def inference():
 
 if __name__ == "__main__":
     train()
+    # inference()

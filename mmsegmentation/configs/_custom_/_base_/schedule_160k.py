@@ -5,12 +5,12 @@ T_max = max_iters-warm_up_step
 
 # optimizer
 optimizer = dict(
-    type='AdamW', lr=0.0001, weight_decay=0.05, eps=1e-8, betas=(0.9, 0.999))
+    type='Lion', lr=0.0001, weight_decay=0.05, betas=(0.9, 0.999))
 optim_wrapper = dict(
     type='AmpOptimWrapper',
     optimizer=optimizer,
     clip_grad=dict(max_norm=0.01, norm_type=2),
-    accumulative_counts=1
+    accumulative_counts=4
     )
 
 # mixed precision

@@ -22,9 +22,9 @@ save_file: output.csv
 
 # hyperparameter
 random_seed: 2024
-lr: 2e-4
+lr: 1e-3
 max_epoch: 40
-smooth_factor: 0
+smooth_factor: 0.1
 scaler: False
 
 # optimizer
@@ -44,8 +44,8 @@ scheduler_parameters:
   # gamma: 0.1
   
   # cosineannealinglr
-  T_max: 30
-  eta_min: 1e-6
+  T_max: 40
+  eta_min: 5e-5
   
   # reducelronplateau
   # factor: 0.1

@@ -17,8 +17,9 @@ CLASSES = [
 CLASS2IND = {v: i for i, v in enumerate(CLASSES)}
 
 def get_sorted_files_by_type(root_path, file_type='json'):
+    current_dir = os.getcwd()
     files = {
-        os.path.relpath(os.path.join(root, fname), start=root_path)
+        os.path.relpath(os.path.join(root, fname), start=current_dir)
         for root, _dirs, files in os.walk(root_path)
         for fname in files
         if os.path.splitext(fname)[1].lower() == '.' + file_type
@@ -65,7 +66,7 @@ class FullDataset(Dataset):
         image_name = os.path.basename(image_path)
 
         image = cv2.imread(image_path)
-        image = image / 255.0
+        image = image.astype(np.float32) / 255.0
         
         if self.label_files:
             label_path = self.label_files[item]

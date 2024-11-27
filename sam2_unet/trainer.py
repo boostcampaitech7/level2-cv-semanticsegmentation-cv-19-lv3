@@ -188,10 +188,10 @@ class Trainer:
         print(f"training start")
 
         self.model.to(self.device)
+        train_loss, train_dice = 0., 0.
+        train_dice, valid_dice = 0., 0.
         for epoch in range(self.start_epoch, self.epochs):
             epoch_start = time.time()
-            train_loss, train_dice = 0., 0.
-            train_dice, valid_dice = 0., 0.
             print(f"Epoch {epoch+1}/{self.epochs}")
             
             train_loss, train_dice = self.train(self.train_loader)

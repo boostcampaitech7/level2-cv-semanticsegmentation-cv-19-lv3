@@ -89,6 +89,7 @@ def main(cfg):
         smooth_factor=cfg.smooth_factor,
         epochs=cfg.max_epoch,
         threshold=cfg.threshold,
+        scaler=cfg.scaler,
         save_dir=save_dir,
         save_every=cfg.save_every,
         valid_every=cfg.valid_every,

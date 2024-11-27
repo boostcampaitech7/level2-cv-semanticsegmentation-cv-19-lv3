@@ -6,7 +6,7 @@ save_dir: /data/ephemeral/home/data/result
 # 모델 라이브러리 및 사용 모델 정의
 model_type: smp
 model_name: UnetPlusPlus
-encoder_name: tu-hrnet_w64
+encoder_name: efficientnet-b2
 encoder_weights: imagenet
 pretrained: True
 
@@ -23,7 +23,7 @@ max_epoch: 60
 
 # loss
 loss:
-    name: DiceFocalLoss
+    name: BCE
     params: null
 
 # optimizer
@@ -41,8 +41,8 @@ threshold: 0.5
 random_seed: 2024
 
 # resize
-size: 1024
+size: 2048
 
 # wandb
-wandb_run_name: smp_unet++_efficientnetv2_xl_DiceBCELoss_cosine_flip+rotate
+wandb_run_name: UNet++_eff_2048
 wandb_run_id: None

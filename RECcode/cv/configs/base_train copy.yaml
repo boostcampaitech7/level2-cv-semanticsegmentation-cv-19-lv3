@@ -1,0 +1,59 @@
+# data 관련 설정
+image_root: /data/ephemeral/home/data/train/DCM
+label_root: /data/ephemeral/home/data/train/outputs_json
+
+# 모델명 및 사전 학습 여부
+model_name: Unet
+model_parameter:
+  encoder_name: efficientnet-b0
+  classes: 29
+
+# batch_size
+train_batch_size: 4
+val_batch_size: 4
+
+# image resize
+image_size: &image_size 512
+
+# transform 관련
+transform:
+  Resize:
+    width: *image_size
+    height: *image_size
+
+# 학습 관련 하이퍼파라미터
+lr: 1e-3
+weight_decay: 1e-6
+
+max_epoch: &max_epoch 40
+
+# loss 관련 설정
+loss_name: BCEWithLogitsLoss
+
+# loss에 필요한 parameter -> dict 형태로 작성
+loss_parameter: {}
+
+# scheduler 관련 설정
+scheduler_name: CosineAnnealingLR
+
+# scheduler 필요한 parameter -> dict 형태로 작성
+scheduler_parameter:
+  T_max: *max_epoch
+  eta_min: 1e-6
+
+# random seed값
+seed: 42
+
+# validation 관련 인자
+val_fold: 0
+val_interval: 2
+threshold: 0.5
+
+# checkpoint 저장 경로
+save_dir: ./checkpoints/Unet
+
+# wandb
+api_key: 7363797140af326caa051190a07bd49ce5341c67
+team_name: cv19-eternalpaperbox
+project_name: UNet
+experiment_detail: base

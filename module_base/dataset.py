@@ -4,8 +4,9 @@ import json
 import cv2
 import numpy as np
 import torch
+import pandas as pd
 from torch.utils.data import Dataset
-from sklearn.model_selection import GroupKFold
+from sklearn.model_selection import StratifiedGroupKFold
 
 CLASSES = [
     'finger-1', 'finger-2', 'finger-3', 'finger-4', 'finger-5',
@@ -29,10 +30,18 @@ class XRayDataset(Dataset):
         
         groups = [os.path.dirname(fname) for fname in fnames]
         
-        # dummy label
-        ys = [0 for fname in fnames]
+        meta_data = pd.read_excel('update_meta_data.xlsx')
         
-        gkf = GroupKFold(n_splits=5)
+        # dummy label
+        ys = []
+        for fname in fnames:
+            folder_name = os.path.dirname(fname)
+            id_number = int(folder_name[2:])
+            
+            row = meta_data.iloc[id_number - 1]
+            ys.append(row['rotate'])
+        
+        gkf = StratifiedGroupKFold(n_splits=5)
         
         filenames = []
         labelnames = []
@@ -44,11 +53,11 @@ class XRayDataset(Dataset):
                 labelnames += list(labels[y])
             
             else:  # k번은 검증
-                if i != self.kfold:
-                    continue
-                filenames = list(fnames[y])
-                labelnames = list(labels[y])
-        
+                if i == self.kfold:
+                    filenames = list(fnames[y])
+                    labelnames = list(labels[y])
+                    break
+                
         self.filenames = filenames
         self.labelnames = labelnames
     

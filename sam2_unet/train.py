@@ -5,7 +5,7 @@ import numpy as np
 from datetime import datetime
 from torch.utils.data import DataLoader
 from utils.loss import structure_loss
-from utils.dataset import FullDataset
+from utils.dataset import *
 from utils.optimizer import OptimizerSelector
 from utils.scheduler import SchedulerSelector
 from utils.transform import TransformSelector
@@ -24,28 +24,31 @@ def set_seed(RANDOM_SEED):
     random.seed(RANDOM_SEED)
 
 def main(cfg):    
-    device = torch.device("cuda")
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     model = SAM2UNet(cfg.hiera_path)
-    
+
+    image_root = os.path.join(cfg.train_data_path, 'DCM')
+    label_root = os.path.join(cfg.train_data_path, 'outputs_json')
+
+    pngs = get_sorted_files_by_type(image_root, 'png')
+    jsons = get_sorted_files_by_type(label_root, 'json')
+    train_files, valid_files = split_data(pngs, jsons, cfg.kfold, cfg.k)
+
     transform_selector = TransformSelector(image_size=cfg.image_size)
     train_transform = transform_selector.get_transform(is_train=True)
     valid_transform = transform_selector.get_transform(is_train=False)
 
     train_dataset = FullDataset(
-        image_root=cfg.train_image_path, 
-        gt_root=cfg.train_mask_path, 
-        is_train=True,
-        transforms=train_transform,
-        kfold=cfg.kfold,
-        k=cfg.k)
+        image_files=train_files['filenames'],
+        label_files=train_files['labelnames'], 
+        transforms=train_transform
+    )
     
     valid_dataset = FullDataset(
-        image_root=cfg.train_image_path, 
-        gt_root=cfg.train_mask_path, 
-        is_train=False,
-        transforms=valid_transform,
-        kfold=cfg.kfold,
-        k=cfg.k)
+        image_files=valid_files['filenames'],
+        label_files=valid_files['labelnames'], 
+        transforms=valid_transform
+    )
 
     train_loader = DataLoader(
         train_dataset, 
@@ -72,11 +75,10 @@ def main(cfg):
     time = now.strftime('%Y-%m-%d_%H:%M:%S')
     save_dir = os.path.join('./checkpoints', time)
     os.makedirs(save_dir, exist_ok=True)
-
-    # Config 저장
     save_path = os.path.join(save_dir, "config.yaml")
     OmegaConf.save(cfg, save_path)
     print(f"Config saved at {save_path}")
+
 
     trainer = Trainer(
         model=model,

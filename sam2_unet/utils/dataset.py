@@ -3,7 +3,6 @@ import os
 import cv2
 import json
 import torch
-from PIL import Image
 from torch.utils.data import Dataset
 from sklearn.model_selection import GroupKFold
 
@@ -17,147 +16,83 @@ CLASSES = [
 ]
 CLASS2IND = {v: i for i, v in enumerate(CLASSES)}
 
+def get_sorted_files_by_type(root_path, file_type='json'):
+    files = {
+        os.path.relpath(os.path.join(root, fname), start=root_path)
+        for root, _dirs, files in os.walk(root_path)
+        for fname in files
+        if os.path.splitext(fname)[1].lower() == '.' + file_type
+    }
+    files = sorted(files)
+
+    return files
+
+def split_data(pngs, jsons, kfold=5, k=0):
+    assert k < kfold
+
+    _filenames = np.array(pngs)
+    _labelnames = np.array(jsons)
+
+    groups = [os.path.dirname(fname) for fname in _filenames]
+
+    ys = [0 for fname in _filenames]
+
+    gkf = GroupKFold(n_splits=kfold)
+
+    train_datalist, valid_datalist = dict(filenames = [], labelnames = []), dict(filenames = [], labelnames = [])
+
+    for idx, (x, y) in enumerate(gkf.split(_filenames, ys, groups)):
+        if idx != k:
+            train_datalist['filenames'] += list(_filenames[y])
+            train_datalist['labelnames'] += list(_labelnames[y])
+        elif idx == k:
+            valid_datalist['filenames'] += list(_filenames[y])
+            valid_datalist['labelnames'] += list(_labelnames[y])
+
+    return train_datalist, valid_datalist
+
 class FullDataset(Dataset):
-    def __init__(self, image_root, gt_root, is_train=True, transforms=None, kfold=5, k=0):
-        pngs = {
-            os.path.relpath(os.path.join(root, fname), start=image_root)
-            for root, _dirs, files in os.walk(image_root)
-            for fname in files
-            if os.path.splitext(fname)[1].lower() == ".png"
-        }
-        jsons = {
-            os.path.relpath(os.path.join(root, fname), start=gt_root)
-            for root, _dirs, files in os.walk(gt_root)
-            for fname in files
-            if os.path.splitext(fname)[1].lower() == ".json"
-        }
-        self.image_root = image_root
-        self.gt_root = gt_root
-        self.is_train = is_train
-        pngs = sorted(pngs)
-        jsons = sorted(jsons)
+    def __init__(self, image_files, label_files=None, transforms=None):
+        self.image_files = image_files
+        self.label_files = label_files
+        self.transforms = transforms
+    
+    def __len__(self):
+        return len(self.image_files)
 
-        _filenames = np.array(pngs)
-        _labelnames = np.array(jsons)
-        
-        groups = [os.path.dirname(fname) for fname in _filenames]
-        
-        ys = [0 for fname in _filenames]
-        
-        gkf = GroupKFold(n_splits=kfold)
-        
-        filenames = []
-        labelnames = []
-        for i, (x, y) in enumerate(gkf.split(_filenames, ys, groups)):
-            if is_train:
-                if i == k:
-                    continue
-                filenames += list(_filenames[y])
-                labelnames += list(_labelnames[y])
-            
-            else:
-                if k >= 0 and i != k:
-                    continue
-                filenames = list(_filenames[y])
-                labelnames = list(_labelnames[y])
-                break
+    def __getitem__(self, item):
+        image_path = self.image_files[item]
+        image_name = os.path.basename(image_path)
 
-        self.images = filenames
-        self.gts = labelnames
-        self.transform = transforms
-
-    def __getitem__(self, idx):
-        image_name = self.images[idx]
-        image_path = os.path.join(self.image_root, image_name)
-        
         image = cv2.imread(image_path)
-        image = image.astype(np.float32) / 255.
+        image = image / 255.0
         
-        label_name = self.gts[idx]
-        label_path = os.path.join(self.gt_root, label_name)
-        
-        image_height, image_width = image.shape[:2]
-        label_shape = (image_height, image_width, len(CLASSES),)
-        label = np.zeros(label_shape, dtype=np.uint8)
-        
-        try:
+        if self.label_files:
+            label_path = self.label_files[item]
+            label_shape = tuple(image.shape[:2]) + (len(CLASSES), )
+            label = np.zeros(label_shape, dtype=np.uint8)
+            
             with open(label_path, "r") as f:
-                annotations = json.load(f)
-        except FileNotFoundError:
-            raise FileNotFoundError(f"Label file not found at path: {label_path}")
+                annotations = json.load(f)["annotations"]
+
+            for ann in annotations:
+                c = ann["label"]
+                class_ind = CLASS2IND[c]
+                points = np.array(ann["points"])
+                
+                class_label = np.zeros(image.shape[:2], dtype=np.uint8)
+                cv2.fillPoly(class_label, [points], 1)
+                label[..., class_ind] = class_label
+        else:
+            label = np.zeros((len(CLASSES), *image.shape[:2]), dtype=np.uint8)
         
-        annotations = annotations.get("annotations", [])
-        
-        # Fill polygons in label
-        for ann in annotations:
-            c = ann.get("label")
-            if c not in CLASS2IND:
-                continue
-            
-            class_ind = CLASS2IND[c]
-            points = np.array(ann.get("points", []), dtype=np.int32)
-            
-            if points.size == 0:
-                continue
-            
-            class_label = np.zeros((image_height, image_width), dtype=np.uint8)
-            cv2.fillPoly(class_label, [points], 1)
-            label[..., class_ind] = class_label
-        
-        if self.transform is not None:
-            inputs = {"image": image, "mask": label} if self.is_train else {"image": image}
-            result = self.transform(**inputs)
-            
+        if self.transforms:
+            inputs = {"image": image, "mask": label} if self.label_files else {"image": image}
+            result = self.transforms(**inputs)
             image = result["image"]
-            label = result["mask"] if self.is_train else label
+            label = result["mask"] if self.label_files else label
 
-        image = image.transpose(2, 0, 1)
-        label = label.transpose(2, 0, 1)
-        
-        image = torch.from_numpy(image).float()
-        label = torch.from_numpy(label).float()
-        
-        return image, label
+        image = torch.from_numpy(image.transpose(2, 0, 1)).float()
+        label = torch.from_numpy(label.transpose(2, 0, 1)).float() if self.label_files else None
 
-    def __len__(self):
-        return len(self.images)
-
-    def rgb_loader(self, path):
-        with open(path, 'rb') as f:
-            img = Image.open(f)
-            return img.convert('RGB')
-
-class TestDataset:
-    def __init__(self, image_root, transform=None):
-        pngs = {
-            os.path.relpath(os.path.join(root, fname), start=image_root)
-            for root, _dirs, files in os.walk(image_root)
-            for fname in files
-            if os.path.splitext(fname)[1].lower() == ".png"
-        }
-        pngs = sorted(pngs)
-
-        self.image_root = image_root
-        self.images = np.array(pngs)
-        self.transform = transform
-    
-    def __len__(self):
-        return len(self.images)
-    
-    def __getitem__(self, idx):
-        image_name = self.images[idx]
-        image_path = os.path.join(self.image_root, image_name)
-        
-        image = cv2.imread(image_path)
-        image = image.astype(np.float32) / 255.
-        
-        if self.transform is not None:
-            inputs = {"image": image}
-            result = self.transform(**inputs)
-            image = result["image"]
-
-        image = image.transpose(2, 0, 1)
-        
-        image = torch.from_numpy(image).float()
-            
-        return image, image_name
+        return (image_name, image, label) if label is not None else (image_name, image)

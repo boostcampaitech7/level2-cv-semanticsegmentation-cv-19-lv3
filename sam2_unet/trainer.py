@@ -4,7 +4,6 @@ import datetime
 from tqdm.auto import tqdm
 from utils.checkpoint import save_checkpoint, load_checkpoint
 from utils.wandb_logger import WandbLogger
-
 import torch
 import torch.nn.functional as F
 from torch.utils.data import DataLoader
@@ -50,10 +49,12 @@ class Trainer:
         self.resume = resume
         self.ckpt_file = ckpt_path
         self.start_epoch = 0
+        
         if scaler:
             self.scaler = torch.cuda.amp.GradScaler()
         else:
             self.scaler = None
+
         self.classes = [
             'finger-1', 'finger-2', 'finger-3', 'finger-4', 'finger-5',
             'finger-6', 'finger-7', 'finger-8', 'finger-9', 'finger-10',
@@ -83,7 +84,7 @@ class Trainer:
         train_dices = []
         progress_bar = tqdm(train_loader, desc="Training", leave=False)
         
-        for images, masks in progress_bar:
+        for image_name, images, masks in progress_bar:
             images, masks = images.to(self.device), masks.to(self.device)
             self.optimizer.zero_grad()
 
@@ -136,7 +137,7 @@ class Trainer:
         progress_bar = tqdm(valid_loader, desc="Validating", leave=False)
         
         with torch.no_grad():
-            for batch_idx, (images, masks) in enumerate(progress_bar):
+            for batch_idx, (image_name, images, masks) in enumerate(progress_bar):
                 images, masks = images.to(self.device), masks.to(self.device)
                 
                 outputs, _, _ = self.model(images)

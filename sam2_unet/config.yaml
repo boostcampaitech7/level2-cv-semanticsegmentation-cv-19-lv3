@@ -1,7 +1,6 @@
 # paths
-train_image_path: /data/ephemeral/home/data/train/DCM
-train_mask_path: /data/ephemeral/home/data/train/outputs_json
-test_image_path: /data/ephemeral/home/data/test/DCM
+train_data_path: /data/ephemeral/home/data/train
+test_data_path: /data/ephemeral/home/data/test
 hiera_path: /data/ephemeral/home/sam2_hiera_large.pt
 
 # train
@@ -15,6 +14,11 @@ kfold: 5
 k: 0
 threshold: 0.5
 valid_every: 2
+
+# test
+test_batch_size: 2
+test_num_workers: 2
+save_file: output.csv
 
 # hyperparameter
 random_seed: 2024

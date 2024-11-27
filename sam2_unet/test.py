@@ -1,23 +1,25 @@
 import os
-import argparse
+import random
 import numpy as np
 import pandas as pd
 import torch
 import torch.nn.functional as F
 from torch.utils.data import DataLoader
-from utils.dataset import TestDataset
+from utils.dataset import *
 from utils.transform import TransformSelector
 from tqdm.auto import tqdm
 from SAM2UNet import SAM2UNet
+from omegaconf import OmegaConf
+from argparse import ArgumentParser
 
-parser = argparse.ArgumentParser()
-parser.add_argument("--checkpoint", type=str, required=True,
-                    help="path to the checkpoint of sam2-unet")
-parser.add_argument("--test_image_path", type=str, default="/data/ephemeral/home/data/test/DCM",
-                    help="path to the image files for testing")
-parser.add_argument("--image_size", type=int, default=1024)
-parser.add_argument("--save_file", type=str, default='output.csv')
-args = parser.parse_args()
+def set_seed(RANDOM_SEED):
+    torch.manual_seed(RANDOM_SEED)
+    torch.cuda.manual_seed(RANDOM_SEED)
+    torch.cuda.manual_seed_all(RANDOM_SEED)
+    torch.backends.cudnn.deterministic = True
+    torch.backends.cudnn.benchmark = False
+    np.random.seed(RANDOM_SEED)
+    random.seed(RANDOM_SEED)
 
 def encode_mask_to_rle(mask):
     '''
@@ -56,29 +58,29 @@ def test(model, args, thr=0.5):
     class2ind = {v: i for i, v in enumerate(classes)}
     ind2class = {v: k for k, v in class2ind.items()}
 
+
+    image_root = os.path.join(args.test_data_path, 'DCM')
+    pngs = get_sorted_files_by_type(image_root, 'png')
+
     transform_selector = TransformSelector(args.image_size)
     transform = transform_selector.get_transform(is_train=False)
 
-    test_dataset = TestDataset(
-        image_root=args.test_image_path,
-        transform=transform
-    )
+    test_dataset = FullDataset(
+        image_files=np.array(pngs), 
+        transforms=transform)
 
     test_loader = DataLoader(
         dataset=test_dataset, 
-        batch_size=2,
-        shuffle=False,
-        num_workers=2,
-    )
-
-    model.eval()
-    model.cuda()
-    os.makedirs("./outputs", exist_ok=True)
+        batch_size=cfg.test_batch_size,
+        num_workers=cfg.test_workers,
+        shuffle=False)
 
     rles = []
     filename_and_class = []
+
+    model.eval()
     with torch.no_grad():
-        for step, (images, image_names) in tqdm(enumerate(test_loader), total=len(test_loader)):
+        for step, (image_names, images) in tqdm(enumerate(test_loader), total=len(test_loader)):
             images = images.cuda()    
             outputs, _, _ = model(images)
             
@@ -94,12 +96,12 @@ def test(model, args, thr=0.5):
                     
     return rles, filename_and_class
 
-def main(args):
+def main(cfg):
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     model = SAM2UNet().to(device)
-    checkpoint = torch.load(os.path.join(args.checkpoint))
+    checkpoint = torch.load(os.path.join(cfg.checkpoint))
     model.load_state_dict(checkpoint['model_state_dict'])
-    rles, filename_and_class = test(model, args)
+    rles, filename_and_class = test(model, cfg)
     classes, filename = zip(*[x.split("_") for x in filename_and_class])
     image_name = [os.path.basename(f) for f in filename]
     df = pd.DataFrame({
@@ -108,11 +110,19 @@ def main(args):
         "rle": rles,
     })
     
-    save_file = args.save_file
+    os.makedirs("./outputs", exist_ok=True)
+    save_file = cfg.save_file
     if len(save_file) < 5 or save_file[-4:] != '.csv':
         save_file += '.csv'
     save_path = os.path.join('./outputs', save_file)
     df.to_csv(save_path, index=False)
 
 if __name__ == "__main__":
-    main(args)
+    parser = ArgumentParser()
+    parser.add_argument('--config', type=str, default='config.yaml')
+    parser.add_argument('--checkpoint', type=str, required=True)
+    args = parser.parse_args()
+
+    with open(args.config, 'r') as f:
+        cfg = OmegaConf.load(f)
+    main(cfg)

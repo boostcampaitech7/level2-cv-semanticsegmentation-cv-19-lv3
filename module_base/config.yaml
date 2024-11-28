@@ -6,21 +6,21 @@ save_dir: /data/ephemeral/home/data/result
 # 모델 라이브러리 및 사용 모델 정의
 model_type: smp
 model_name: UnetPlusPlus
-encoder_name: vgg19_bn
+encoder_name: tu-hrnet_w64
 encoder_weights: imagenet
 pretrained: True
 
 # batch_size
-train_batch_size: 1
-valid_batch_size: 1
+train_batch_size: 2
+valid_batch_size: 4
 
 # hyperparameter
-lr: 2e-4
+lr: 1e-4
 weight_decay: 1e-6
 train_num_workers: 4
 valid_num_workers: 0
 max_epoch: 60
-step: 2 # batch_size 효과
+step: 4 # batch_size 효과
 
 # loss
 loss:
@@ -42,8 +42,8 @@ threshold: 0.5
 random_seed: 2024
 
 # resize
-size: 2048
+size: 1024
 
 # wandb
-wandb_run_name: smp_unet++_vgg19_DiceBCELoss_cosine_flip+rotate_adam_2048
+wandb_run_name: smp_unet++_hrnet_DiceBCELoss_cosine_flip+rotate+mixup+brightnesscontrast+clahe
 wandb_run_id: None

@@ -2,14 +2,17 @@ import albumentations as A
 
 class AlbumentationTransform:
     def __init__(self, is_train, resize):
-        common_transform = [A.Resize(resize, resize)]
+        common_transform = [
+            A.Resize(resize, resize),
+            A.RandomBrightnessContrast(brightness_limit=(0.1, 0.1), contrast_limit=(0.1, 0.1), p=1),
+            A.CLAHE(clip_limit=2.0, tile_grid_size=(8, 8), always_apply=False, p=1.0),
+            ]
         
         if is_train:
             self.transform = A.Compose(
                 [
                     A.HorizontalFlip(0.2),
                     A.Rotate(limit=(-15, 15), p=0.5),
-                    # A.CLAHE(clip_limit=4.0, tile_grid_size=(8, 8), always_apply=False, p=1.0)
                 ]+ common_transform)
         else:
             self.transform = A.Compose(common_transform)

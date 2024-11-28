@@ -32,7 +32,7 @@ class XRayDataset(Dataset):
         # dummy label
         ys = [0 for fname in fnames]
         
-        gkf = GroupKFold(n_splits=5)
+        gkf = GroupKFold(n_splits=8)
         
         filenames = []
         labelnames = []
@@ -66,7 +66,7 @@ class XRayDataset(Dataset):
         label_path = os.path.join(self.label_root, label_name)
         
         # (H, W, NC) 모양의 label을 생성합니다.
-        label_shape = tuple(image.shape[:2]) + (len(CLASSES), )
+        label_shape = tuple(image.shape[:2]) + (len(CLASSES), ) # (2048, 2048, 29)
         label = np.zeros(label_shape, dtype=np.uint8)
         
         # label 파일을 읽습니다.
@@ -76,13 +76,13 @@ class XRayDataset(Dataset):
         
         # 클래스 별로 처리합니다.
         for ann in annotations:
-            c = ann["label"]
-            class_ind = self.class2ind[c]
-            points = np.array(ann["points"])
+            c = ann["label"] # class name
+            class_ind = self.class2ind[c] # to index
+            points = np.array(ann["points"]) # mask
             
             # polygon 포맷을 dense한 mask 포맷으로 바꿉니다.
-            class_label = np.zeros(image.shape[:2], dtype=np.uint8)
-            cv2.fillPoly(class_label, [points], 1)
+            class_label = np.zeros(image.shape[:2], dtype=np.uint8) # (2048, 2048)
+            cv2.fillPoly(class_label, [points], 1) # points 좌표의 점을 1로 채우기
             label[..., class_ind] = class_label
         
         if self.transforms is not None:
@@ -98,6 +98,33 @@ class XRayDataset(Dataset):
         
         image = torch.from_numpy(image).float()
         label = torch.from_numpy(label).float()
+        
+        return image, label
+
+class XRayDatasetWithMixup(XRayDataset):
+    def __init__(self, fnames, labels, image_root, label_root, kfold=0, transforms=None, 
+                is_train=True, mixup_prob=0.5, mixup_alpha=0.5):
+        super().__init__(fnames, labels, image_root, label_root, kfold, transforms, is_train)
+        self.mixup_prob = mixup_prob  # mixup을 적용할 확률
+        self.mixup_alpha = mixup_alpha  # Beta 분포의 알파 값
+        
+    def __getitem__(self, item):
+        image, label = super().__getitem__(item)
+        
+        # 학습 시에만 mixup을 적용하고, mixup_prob 확률로 적용
+        if self.is_train and torch.rand(1) < self.mixup_prob:
+            # 랜덤하게 다른 인덱스 선택
+            other_idx = torch.randint(len(self), size=(1,)).item()
+            other_image, other_label = super().__getitem__(other_idx)
+            
+            # Beta 분포에서 혼합 비율 샘플링
+            lam = np.random.beta(self.mixup_alpha, self.mixup_alpha)
+            
+            # 이미지와 라벨 혼합
+            mixed_image = lam * image + (1 - lam) * other_image
+            mixed_label = lam * label + (1 - lam) * other_label
+            
+            return mixed_image, mixed_label
         
         return image, label
 

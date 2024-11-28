@@ -2,60 +2,28 @@
 import os
 import random
 import datetime
+
 import numpy as np
 from tqdm.auto import tqdm
 import albumentations as A
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
 from torch.utils.data import DataLoader
-from torchvision import models
+
 from dataset import XRayDataset
 from model import ModelSelector
+from transform import TransformSelector
+from loss import LossSelector
+from scheduler import SchedulerSelector
+
+import warnings
+warnings.filterwarnings('ignore')
+
+from omegaconf import OmegaConf
 from argparse import ArgumentParser
-
-def parse_args():
-    parser = ArgumentParser()
-
-    # Conventional args
-    parser.add_argument('--image_root', type=str, default='/data/ephemeral/home/data/train/DCM',
-                        help='Path to the root directory containing images')
-    parser.add_argument('--label_root', type=str, default='/data/ephemeral/home/data/train/outputs_json',
-                        help='Path to the root directory containing labels')
-    parser.add_argument('--save_dir', type=str, default="/data/ephemeral/home/data/result",
-                        help='Path to the root directory containing save direction')
-    parser.add_argument('--batch_size', type=int, default=1)
-    parser.add_argument('--learning_rate', type=float, default=1e-4)
-    parser.add_argument('--max_epoch', type=int, default=1)
-    parser.add_argument('--val_every', type=int, default=5)
-    parser.add_argument('--random_seed', type=int, default=2024)
-    parser.add_argument('--model_type', type=str, default='smp')
-    parser.add_argument('--model_name', type=str, default='efficientnet-b0')
-    parser.add_argument('--encoder_weights', type=str, default='imagenet')
-    # parser.add_argument('--pretrained', type=str, default='True')
-    args = parser.parse_args()
-    
-    return args
-
-CLASSES = [
-    'finger-1', 'finger-2', 'finger-3', 'finger-4', 'finger-5',
-    'finger-6', 'finger-7', 'finger-8', 'finger-9', 'finger-10',
-    'finger-11', 'finger-12', 'finger-13', 'finger-14', 'finger-15',
-    'finger-16', 'finger-17', 'finger-18', 'finger-19', 'Trapezium',
-    'Trapezoid', 'Capitate', 'Hamate', 'Scaphoid', 'Lunate',
-    'Triquetrum', 'Pisiform', 'Radius', 'Ulna',
-]
-
-CLASS2IND = {v: i for i, v in enumerate(CLASSES)}
-IND2CLASS = {v: k for k, v in CLASS2IND.items()}
-
-def dice_coef(y_true, y_pred):
-    y_true_f = y_true.flatten(2)
-    y_pred_f = y_pred.flatten(2)
-    intersection = torch.sum(y_true_f * y_pred_f, -1)
-    eps = 0.0001
-    return (2. * intersection + eps) / (torch.sum(y_true_f, -1) + torch.sum(y_pred_f, -1) + eps)
 
 def set_seed(random_seed):
     torch.manual_seed(random_seed)
@@ -66,21 +34,43 @@ def set_seed(random_seed):
     np.random.seed(random_seed)
     random.seed(random_seed)
 
-def save_model(model, save_dir, file_name='fcn_resnet50_best_model.pt'):
+def dice_coef(y_true, y_pred):
+    y_true_f = y_true.flatten(2)
+    y_pred_f = y_pred.flatten(2)
+    intersection = torch.sum(y_true_f * y_pred_f, -1)
+    eps = 0.0001
+    return (2. * intersection + eps) / (torch.sum(y_true_f, -1) + torch.sum(y_pred_f, -1) + eps)
+
+def set_data(cfg):
+    pngs = {
+        os.path.relpath(os.path.join(root, fname), start=cfg.image_root)
+        for root, _dirs, files in os.walk(cfg.image_root)
+        for fname in files
+        if os.path.splitext(fname)[1].lower() == ".png"
+    }
+
+    jsons = {
+        os.path.relpath(os.path.join(root, fname), start=cfg.label_root)
+        for root, _dirs, files in os.walk(cfg.label_root)
+        for fname in files
+        if os.path.splitext(fname)[1].lower() == ".json"
+    }
+    return np.array(sorted(pngs)), np.array(sorted(jsons))
+
+def save_model(model, save_dir, file_name='best_model.pt'):
     output_path = os.path.join(save_dir, file_name)
     torch.save(model, output_path)
 
-def validation(epoch, model, data_loader, criterion, model_type, thr=0.5):
+def validation(epoch, model, val_loader, criterion, model_type, thr=0.5):
     print(f'Start validation #{epoch:2d}')
     model.eval()
 
     dices = []
     with torch.no_grad():
-        n_class = len(CLASSES)
         total_loss = 0
         cnt = 0
 
-        for step, (images, masks) in tqdm(enumerate(data_loader), total=len(data_loader)):
+        for step, (images, masks) in tqdm(enumerate(val_loader), total=len(val_loader)):
             images, masks = images.cuda(), masks.cuda()         
             model = model.cuda()
             
@@ -101,17 +91,18 @@ def validation(epoch, model, data_loader, criterion, model_type, thr=0.5):
             cnt += 1
             
             outputs = torch.sigmoid(outputs)
-            outputs = (outputs > thr).detach().cpu()
-            masks = masks.detach().cpu()
-            
+            # outputs = (outputs > thr).detach().cpu()
+            # masks = masks.detach().cpu()
+            outputs = (outputs > thr)
             dice = dice_coef(outputs, masks)
-            dices.append(dice)
+            # dices.append(dice)
+            dices.append(dice.detach().cpu())
                 
     dices = torch.cat(dices, 0)
     dices_per_class = torch.mean(dices, 0)
     dice_str = [
         f"{c:<12}: {d.item():.4f}"
-        for c, d in zip(CLASSES, dices_per_class)
+        for c, d in zip(val_loader.dataset.classes, dices_per_class)
     ]
     dice_str = "\n".join(dice_str) 
     print(dice_str)
@@ -120,42 +111,27 @@ def validation(epoch, model, data_loader, criterion, model_type, thr=0.5):
     
     return avg_dice
 
-def train(model, train_loader, valid_loader, criterion, optimizer, save_dir, random_seed, max_epoch, val_every, model_type):
+def train(model, train_loader, val_loader, criterion, optimizer, scheduler, cfg):
     print(f'Start training..')
-    
-    n_class = len(CLASSES)
     best_dice = 0.
 
-    # GradScaler를 사용해 Mixed Precision Training을 설정
     scaler = torch.cuda.amp.GradScaler()
+    model = model.cuda()
     
-    for epoch in range(max_epoch):
+    for epoch in range(cfg.max_epoch):
+        torch.cuda.empty_cache() # 학습 시작 전 캐시 삭제
         model.train()
-
-        for step, (images, masks) in enumerate(train_loader):            
+        for step, (images, masks) in enumerate(train_loader):
             # gpu 연산을 위해 device 할당합니다.
             images, masks = images.cuda(), masks.cuda()
-            model = model.cuda()
             
-            # if model_type == 'torchvision':
-            #     outputs = model(images)['out']
-            # elif model_type == 'smp':
-            #     outputs = model(images)
-            
-            # loss를 계산합니다.
-            # loss = criterion(outputs, masks)
-            # optimizer.zero_grad()
-            # loss.backward()
-            # optimizer.step()
-
-            # Mixed Precision Training 적용
+            # Mixed Precision Training으로 loss 계산에서만 FP32 사용
             with torch.cuda.amp.autocast():
-                if model_type == 'torchvision':
+                if cfg.model_type == 'torchvision':
                     outputs = model(images)['out']
-                elif model_type == 'smp':
+                elif cfg.model_type == 'smp':
                     outputs = model(images)
                 loss = criterion(outputs, masks)
-            
             # 스케일된 loss를 사용해 backward 및 optimizer step
             optimizer.zero_grad()
             scaler.scale(loss).backward()
@@ -163,98 +139,84 @@ def train(model, train_loader, valid_loader, criterion, optimizer, save_dir, ran
             scaler.update()
             
             # step 주기에 따라 loss를 출력합니다.
-            if (step + 1) % 25 == 0:
+            if (step + 1) % 80 == 0:
                 print(
                     f'{datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")} | '
-                    f'Epoch [{epoch+1}/{max_epoch}], '
+                    f'Epoch [{epoch+1}/{cfg.max_epoch}], '
                     f'Step [{step+1}/{len(train_loader)}], '
                     f'Loss: {round(loss.item(),4)}'
                 )
-                
+        scheduler.step()
         # validation 주기에 따라 loss를 출력하고 best model을 저장합니다.
-        if (epoch + 1) % val_every == 0:
-            # 캐시된 메모리를 해제하여 PyTorch의 메모리 누수를 방지
-            torch.cuda.empty_cache()
-            dice = validation(epoch + 1, model, valid_loader, criterion, model_type)
+        if (epoch + 1) % cfg.val_every == 0:
+            dice = validation(epoch + 1, model, val_loader, criterion, cfg.model_type)
             
             if best_dice < dice:
                 print(f"Best performance at epoch: {epoch + 1}, {best_dice:.4f} -> {dice:.4f}")
-                print(f"Save model in {save_dir}")
+                print(f"Save model in {cfg.save_dir}")
                 best_dice = dice
-                save_model(model, save_dir)
+                save_model(model, cfg.save_dir)
 
-def do_training(image_root, label_root, save_dir, batch_size, learning_rate, max_epoch, val_every, random_seed,
-                model_type, model_name, encoder_weights):
-    pngs = {
-        os.path.relpath(os.path.join(root, fname), start=image_root)
-        for root, _dirs, files in os.walk(image_root)
-        for fname in files
-        if os.path.splitext(fname)[1].lower() == ".png"
-    }
+def main(cfg):
+    set_seed(cfg.random_seed)
+    fnames, labels = set_data(cfg)
 
-    jsons = {
-        os.path.relpath(os.path.join(root, fname), start=label_root)
-        for root, _dirs, files in os.walk(label_root)
-        for fname in files
-        if os.path.splitext(fname)[1].lower() == ".json"
-    }
+    if not os.path.exists(cfg.save_dir):
+        os.makedirs(cfg.save_dir)
     
-    pngs = sorted(pngs)
-    jsons = sorted(jsons)
-    
-    if not os.path.exists(save_dir):
-        os.makedirs(save_dir)
-    
-    tf = A.Resize(512, 512)
-    '''
-    ************************************** augmentatoin도 모듈화 할 것 **************************************
-    train_tf = A.Compose([
-        A.Resize(512, 512),      
-        A.HorizontalFlip(p=0.3),
-    ])
-    '''
-    
-    train_dataset = XRayDataset(pngs, jsons, CLASS2IND, CLASSES, image_root, label_root, is_train=True, transforms=tf)
-    valid_dataset = XRayDataset(pngs, jsons, CLASS2IND, CLASSES, image_root, label_root, is_train=False, transforms=tf)
+    train_trans = TransformSelector('albumentation')
+    train_tf = train_trans.get_transform(True, cfg.size)
+    val_trans = TransformSelector('albumentation')
+    val_tf = val_trans.get_transform(False, cfg.size)
+
+    train_dataset = XRayDataset(fnames, labels, cfg.image_root, cfg.label_root, cfg.kfold, train_tf, is_train=True)
+    valid_dataset = XRayDataset(fnames, labels, cfg.image_root, cfg.label_root, cfg.kfold, val_tf, is_train=False)
     
     train_loader = DataLoader(
         dataset=train_dataset, 
-        batch_size=batch_size,
+        batch_size=cfg.train_batch_size,
         shuffle=True,
-        num_workers=8,
+        num_workers=cfg.train_num_workers,
         drop_last=True,
     )
     
     valid_loader = DataLoader(
         dataset=valid_dataset, 
-        batch_size=8,
+        batch_size=cfg.valid_batch_size,
         shuffle=False,
-        num_workers=0,
+        num_workers=cfg.valid_num_workers,
         drop_last=False
     )
     
     model_selector = ModelSelector(
-        model_type=model_type,
-        num_classes=len(CLASSES),
-        model_name=model_name,
-        encoder_weights=encoder_weights,
+        model_type=cfg.model_type,
+        num_classes=len(valid_loader.dataset.classes),
+        model_name=cfg.model_name,
+        encoder_name=cfg.encoder_name,
+        encoder_weights=cfg.encoder_weights
+        # pretrained=cfg.pretrained
     )
     model = model_selector.get_model()
     
-    # Loss function을 정의합니다.
-    criterion = nn.BCEWithLogitsLoss()
+    # criterion = nn.BCEWithLogitsLoss()
+    if cfg.loss.params:
+        loss = LossSelector(cfg.loss.name, **cfg.loss.params)
+    else:
+        loss = LossSelector(cfg.loss.name)
+    criterion = loss.get_loss()
 
-    # Optimizer를 정의합니다.
-    optimizer = optim.Adam(params=model.parameters(), lr=learning_rate, weight_decay=1e-6)
-
-    # 시드를 설정합니다.
-    set_seed(random_seed)
+    optimizer = optim.Adam(params=model.parameters(), lr=cfg.lr, weight_decay=cfg.weight_decay)
     
-    train(model, train_loader, valid_loader, criterion, optimizer, save_dir, random_seed, max_epoch, val_every, model_type)
-
-def main(args):
-    do_training(**args.__dict__)
+    train(model, train_loader, valid_loader, criterion, optimizer, scheduler, cfg)
+    
+    sched = SchedulerSelector(cfg.scheduler, optimizer, cfg.max_epoch)
+    scheduler = sched.get_sched()
 
 if __name__ == '__main__':
-    args = parse_args()
-    main(args)
+    parser = ArgumentParser()
+    parser.add_argument('--config', type=str, default='config.yaml')
+    args = parser.parse_args()
+
+    with open(args.config, 'r') as f:
+        cfg = OmegaConf.load(f)
+    main(cfg)

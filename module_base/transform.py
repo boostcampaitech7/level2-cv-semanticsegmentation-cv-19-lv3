@@ -6,7 +6,7 @@ class AlbumentationTransform:
             A.Resize(resize, resize),
             A.RandomBrightnessContrast(brightness_limit=(0.1, 0.1), contrast_limit=(0.1, 0.1), p=1),
             A.CLAHE(clip_limit=2.0, tile_grid_size=(8, 8), always_apply=False, p=1.0),
-                            ]
+            ]
         
         if is_train:
             self.transform = A.Compose(

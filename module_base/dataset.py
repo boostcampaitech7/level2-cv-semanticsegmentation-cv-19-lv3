@@ -32,7 +32,7 @@ class XRayDataset(Dataset):
         # dummy label
         ys = [0 for fname in fnames]
         
-        gkf = GroupKFold(n_splits=8)
+        gkf = GroupKFold(n_splits=20)
         
         filenames = []
         labelnames = []

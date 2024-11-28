@@ -46,7 +46,7 @@ def split_data(pngs, jsons, kfold=5, k=0):
         if idx != k:
             train_datalist['filenames'] += list(_filenames[y])
             train_datalist['labelnames'] += list(_labelnames[y])
-        elif idx == k:
+        if (k < 0 and idx == 0) or (idx == k):
             valid_datalist['filenames'] += list(_filenames[y])
             valid_datalist['labelnames'] += list(_labelnames[y])
 

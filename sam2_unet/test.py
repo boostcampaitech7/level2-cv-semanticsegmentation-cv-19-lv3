@@ -51,7 +51,7 @@ def decode_rle_to_mask(rle, height, width):
     
     return img.reshape(height, width)
 
-def test(model, cfg, thr=0.5):
+def test(model, cfg):
     classes = [
         'finger-1', 'finger-2', 'finger-3', 'finger-4', 'finger-5',
         'finger-6', 'finger-7', 'finger-8', 'finger-9', 'finger-10',
@@ -90,7 +90,7 @@ def test(model, cfg, thr=0.5):
             
             outputs = F.interpolate(outputs, size=(2048, 2048), mode="bilinear")
             outputs = torch.sigmoid(outputs)
-            outputs = (outputs > thr).detach().cpu().numpy()
+            outputs = (outputs > cfg.threshold).detach().cpu().numpy()
             
             for output, image_name in zip(outputs, image_names):
                 for c, segm in enumerate(output):

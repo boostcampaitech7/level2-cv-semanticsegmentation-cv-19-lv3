@@ -1,4 +1,4 @@
-IMAGE_SIZE = (1536, 1536)
+IMAGE_SIZE = (2048, 2048)
 IMAGE_ROOT = '/data/ephemeral/home/data/train/DCM'
 LABEL_ROOT = '/data/ephemeral/home/data/train/outputs_json'
 SUBMISSION_PATH = '/data/ephemeral/home/submission'
@@ -11,7 +11,6 @@ train_pipeline = [
             dict(type='LoadImageFromFile'),
             dict(type='LoadXRayAnnotations'),
             dict(type='Resize', scale=IMAGE_SIZE),
-            # dict(type='RandomRotFlip', rotate_prob=0.2, flip_prob=0.4),
             dict(type='TransposeAnnotations'),
             dict(type='PackSegInputs')
         ]
@@ -56,7 +55,7 @@ val_dataloader = dict(
 
 
 test_dataloader = dict(
-    batch_size=8,
+    batch_size=4,
     num_workers=4,
     persistent_workers=True,
     sampler=dict(type='DefaultSampler', shuffle=False),
@@ -79,10 +78,11 @@ tta_pipeline = [
     dict(
         type='TestTimeAug',
         transforms=[
-            [
-                dict(type='Resize', scale_factor=r, keep_ratio=True)
-                for r in img_ratios
-            ],
+            # [
+            #     dict(type='Resize', scale_factor=r, keep_ratio=True)
+            #     for r in img_ratios
+            # ],
+            [dict(type='Resize', scale=IMAGE_SIZE)],
             [
                 dict(type='RandomFlip', prob=0., direction='horizontal'),
                 dict(type='RandomFlip', prob=1., direction='horizontal')

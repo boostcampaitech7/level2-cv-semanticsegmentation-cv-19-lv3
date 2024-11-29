@@ -23,6 +23,7 @@ CLASSES = [
 
 CLASS2IND = {v: i for i, v in enumerate(CLASSES)}
 IND2CLASS = {v: k for k, v in CLASS2IND.items()}
+val_fold_num = 0
 
 
 @DATASETS.register_module()
@@ -78,13 +79,16 @@ class XRayDataset2(BaseSegDataset):
         labelnames = []
         for i, (x, y) in enumerate(gkf.split(_filenames, ys, groups)):
             if self.is_train:
-                if i == 0:
-                    continue
+                # if i == val_fold_num:
+                #     continue
 
                 filenames += list(_filenames[y])
                 labelnames += list(_labelnames[y])
 
             else:
+                if i != val_fold_num:
+                    continue
+                
                 filenames = list(_filenames[y])
                 labelnames = list(_labelnames[y])
 
@@ -129,6 +133,7 @@ class LoadXRayAnnotations(BaseTransform):
             label[..., class_ind] = class_label
 
         result["gt_seg_map"] = label
+        result['seg_fields'] = ['gt_seg_map']
 
         return result
     

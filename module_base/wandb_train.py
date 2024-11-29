@@ -142,7 +142,6 @@ def train(model, train_loader, val_loader, criterion, optimizer, scheduler, cfg)
                 elif cfg.model_type == 'smp':
                     outputs = model(images)
                 loss = criterion(outputs, masks)
-                # 아래 부터는 gradient accumulation
                 # loss = loss / cfg.step
             # 스케일된 loss를 사용해 backward 및 optimizer step
             epoch_loss += loss.item()
@@ -150,6 +149,7 @@ def train(model, train_loader, val_loader, criterion, optimizer, scheduler, cfg)
             scaler.scale(loss).backward()
             scaler.step(optimizer)
             scaler.update()
+            # gradient accumulation 사용 시 변경
             '''
             scaler.scale(loss).backward()
             epoch_loss += loss.item() * cfg.step

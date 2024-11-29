@@ -47,7 +47,7 @@ class XRayDataset(Dataset):
         filenames = []
         labelnames = []
         for i, (x, y) in enumerate(gkf.split(fnames, ys, groups)):
-            if self.is_train: # k번 빼고 학습
+            if self.is_train:
                 if i == self.kfold:
                     continue
                 filenames += list(fnames[y])

@@ -1,24 +1,22 @@
 # python native
 import os
 import random
-import time
 import datetime
 
 import numpy as np
 from tqdm.auto import tqdm
-import albumentations as A
 
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-import torch.optim as optim
 from torch.utils.data import DataLoader
 
-from dataset import XRayDataset
+from dataset import XRayDataset, XRayDatasetWithMixup
 from model import ModelSelector
 from transform import TransformSelector
 from loss import LossSelector
 from scheduler import SchedulerSelector
+from optimizer import OptimizerSelector
 
 import warnings
 warnings.filterwarnings('ignore')
@@ -30,7 +28,7 @@ from wandb_logger import WandbLogger
 def set_seed(random_seed):
     torch.manual_seed(random_seed)
     torch.cuda.manual_seed(random_seed)
-    torch.cuda.manual_seed_all(random_seed) # if use multi-GPU
+    torch.cuda.manual_seed_all(random_seed)
     torch.backends.cudnn.deterministic = True
     torch.backends.cudnn.benchmark = False
     np.random.seed(random_seed)
@@ -130,7 +128,6 @@ def train(model, train_loader, val_loader, criterion, optimizer, scheduler, cfg)
     logger.initialize(wandb_config)
     
     for epoch in range(cfg.max_epoch):
-        epoch_start = time.time()
         epoch_loss = 0
         torch.cuda.empty_cache() # 학습 시작 전 캐시 삭제
         model.train()
@@ -145,14 +142,26 @@ def train(model, train_loader, val_loader, criterion, optimizer, scheduler, cfg)
                 elif cfg.model_type == 'smp':
                     outputs = model(images)
                 loss = criterion(outputs, masks)
+                # loss = loss / cfg.step
             # 스케일된 loss를 사용해 backward 및 optimizer step
+            epoch_loss += loss.item()
             optimizer.zero_grad()
             scaler.scale(loss).backward()
             scaler.step(optimizer)
             scaler.update()
-            
+            # gradient accumulation 사용 시 변경
+            '''
+            scaler.scale(loss).backward()
+            epoch_loss += loss.item() * cfg.step
+
+            # gradient accumulation
+            if (step + 1) % cfg.step == 0:
+                scaler.step(optimizer)
+                scaler.update()
+                optimizer.zero_grad()
+            '''
             # step 주기에 따라 loss를 출력합니다.
-            if (step + 1) % 25 == 0:
+            if (step + 1) % 80 == 0:
                 print(
                     f'{datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")} | '
                     f'Epoch [{epoch+1}/{cfg.max_epoch}], '
@@ -160,26 +169,21 @@ def train(model, train_loader, val_loader, criterion, optimizer, scheduler, cfg)
                     f'Loss: {round(loss.item(),4)}'
                 )
         scheduler.step()
-        epoch_time = datetime.timedelta(seconds=time.time() - epoch_start)
-        dataset_size = len(train_loader.dataset)
-        epoch_loss = epoch_loss / dataset_size
         # validation 주기에 따라 loss를 출력하고 best model을 저장합니다.
         if (epoch + 1) % cfg.val_every == 0:
             dice, val_loss = validation(epoch + 1, model, val_loader, criterion, cfg.model_type)
-            
             if best_dice < dice:
                 print(f"Best performance at epoch: {epoch + 1}, {best_dice:.4f} -> {dice:.4f}")
-                print(f"Save model in {cfg.save_dir}")
                 best_dice = dice
                 ckpt_path = save_model(model, cfg.save_dir)
+                print(f"Save model in {cfg.save_dir}")
             logger.log_model(ckpt_path, f'model-epoch-{epoch+1}')
             logger.log_epoch_metrics(
                 {
                     "epoch": epoch,
-                    "loss": epoch_loss,
+                    "loss": epoch_loss / len(train_loader.dataset),
                     "dice": dice,
-                    "val_loss": val_loss,
-                    "epoch_time": epoch_time.total_seconds()
+                    "val_loss": val_loss
                 }
             )
     logger.finish()
@@ -196,7 +200,7 @@ def main(cfg):
     val_trans = TransformSelector('albumentation')
     val_tf = val_trans.get_transform(False, cfg.size)
 
-    train_dataset = XRayDataset(fnames, labels, cfg.image_root, cfg.label_root, cfg.kfold, train_tf, is_train=True)
+    train_dataset = XRayDatasetWithMixup(fnames, labels, cfg.image_root, cfg.label_root, cfg.kfold, train_tf, is_train=True)
     valid_dataset = XRayDataset(fnames, labels, cfg.image_root, cfg.label_root, cfg.kfold, val_tf, is_train=False)
     
     train_loader = DataLoader(
@@ -225,14 +229,14 @@ def main(cfg):
     )
     model = model_selector.get_model()
     
-    # criterion = nn.BCEWithLogitsLoss()
     if cfg.loss.params:
         loss = LossSelector(cfg.loss.name, **cfg.loss.params)
     else:
         loss = LossSelector(cfg.loss.name)
     criterion = loss.get_loss()
 
-    optimizer = optim.Adam(params=model.parameters(), lr=cfg.lr, weight_decay=cfg.weight_decay)
+    optim = OptimizerSelector(cfg.optim, model, cfg.lr, cfg.weight_decay)
+    optimizer = optim.get_optim()
 
     sched = SchedulerSelector(cfg.scheduler, optimizer, cfg.max_epoch)
     scheduler = sched.get_sched()

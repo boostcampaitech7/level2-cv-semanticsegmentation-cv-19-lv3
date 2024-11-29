@@ -1,7 +1,7 @@
 # 데이터 및 모델 저장 경로
-image_root: /data/ephemeral/home/data/train/DCM
-label_root: /data/ephemeral/home/data/train/outputs_json
-save_dir: /data/ephemeral/home/data/result
+image_root: 본인 이미지 경로 추가
+label_root: 본인 레이블 경로 추가
+save_dir: 모델 저장 경로 추가
 
 # 모델 라이브러리 및 사용 모델 정의
 model_type: smp
@@ -15,15 +15,16 @@ train_batch_size: 2
 valid_batch_size: 4
 
 # hyperparameter
-lr: 2e-4
+lr: 1e-4
 weight_decay: 1e-6
-train_num_workers: 8
+train_num_workers: 4
 valid_num_workers: 0
-max_epoch: 50
+max_epoch: 60
+step: 4 # batch_size 효과
 
 # loss
 loss:
-    name: BCEWithLogitsLoss
+    name: DiceBCELoss
     params: null
 
 # optimizer
@@ -44,5 +45,5 @@ random_seed: 2024
 size: 1024
 
 # wandb
-wandb_run_name: Test
+wandb_run_name: smp
 wandb_run_id: None

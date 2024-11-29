@@ -32,5 +32,5 @@ log_config = dict(
             num_eval_images=10)
     ])
 
-tta_model = dict(type='SegTTAModel')
+tta_model = dict(type='SegTTAModelWithoutArgMax')
 randomness=dict(seed=42)

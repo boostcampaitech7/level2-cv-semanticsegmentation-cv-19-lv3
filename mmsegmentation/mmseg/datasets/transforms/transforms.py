@@ -2359,7 +2359,7 @@ class Albu(BaseTransform):
         self.bgr_to_rgb = bgr_to_rgb
 
         self.aug = Compose([self.albu_builder(t) for t in self.transforms],
-                           additional_targets=self.additional_targets)
+                           additional_targets=self.additional_targets, is_check_shapes=True, strict=False)
 
         if not keymap:
             self.keymap_to_albu = {'img': 'image', 'gt_seg_map': 'mask'}
@@ -2434,8 +2434,9 @@ class Albu(BaseTransform):
                         results[key] = cv2.cvtColor(results[key],
                                                     cv2.COLOR_BGR2RGB)
 
-        # Apply Transform
+        # # Apply Transform
         results = self.aug(**results)
+        
 
         # Convert back to BGR
         if self.bgr_to_rgb:

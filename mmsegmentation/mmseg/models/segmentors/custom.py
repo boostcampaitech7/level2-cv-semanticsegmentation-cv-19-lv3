@@ -69,9 +69,15 @@ class PostProcessResultMixin:
             else:
                 i_seg_logits = seg_logits[i]
 
+            # if self.module.decode_head.threshold:
+            #     threshold = self.module.decode_head.threshold
+            # else:
+            #     threshold = 0.5
+            threshold = 0.45
+            
             i_seg_logits = i_seg_logits.sigmoid()
-            i_seg_pred = (i_seg_logits > 0.5).to(i_seg_logits)
-
+            i_seg_pred = (i_seg_logits > threshold).to(i_seg_logits)
+            
             data_samples[i].set_data({
                 'seg_logits':
                 PixelData(**{'data': i_seg_logits}),

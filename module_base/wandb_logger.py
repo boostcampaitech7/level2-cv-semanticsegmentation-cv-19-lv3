@@ -1,5 +1,6 @@
 import wandb
 
+# 원하는 log 추가
 class WandbLogger:
     def __init__(self, project_name="Hand Bone Image Segmentation", name=None):
         """

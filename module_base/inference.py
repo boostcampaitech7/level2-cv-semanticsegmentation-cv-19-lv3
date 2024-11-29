@@ -14,9 +14,9 @@ from transform import TransformSelector
 def parse_args():
     parser = ArgumentParser()
     
-    parser.add_argument('--image_root', type=str, default='/data/ephemeral/home/data/test/DCM',
+    parser.add_argument('--image_root', type=str, default='본인 이미지 경로 추가',
                         help='Path to the root directory containing images')
-    parser.add_argument('--save_dir', type=str, default="/data/ephemeral/home/data/result",
+    parser.add_argument('--save_dir', type=str, default="csv 저장 경로 추가",
                         help='Path to the root directory containing save direction')
     parser.add_argument('--random_seed', type=int, default=2024)
     parser.add_argument('--model_type', type=str, default='smp')
@@ -104,7 +104,7 @@ def do_inference(image_root, save_dir, random_seed, model_type):
     model = torch.load(os.path.join(save_dir, "best_model.pt"))
     
     test_trans = TransformSelector('albumentation')
-    test_tf = test_trans.get_transform(False, 512)
+    test_tf = test_trans.get_transform(False, 1024)
     test_dataset = XRayInferenceDataset(fnames, image_root,transforms=test_tf)
     
     test_loader = DataLoader(

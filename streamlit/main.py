@@ -8,9 +8,9 @@ import pandas as pd
 
 
 info = {
-    'image_root': "../../data/{}/DCM",
-    'all_image_root': "../../data/test/DCM/all_pngs",
-    'label_root': "../../data/train/outputs_json",
+    'image_root': "/data/ephemeral/home/cleansed_data/train/DCM",
+    'all_image_root': "/data/ephemeral/home/all_pngs",
+    'label_root': "/data/ephemeral/home/cleansed_data/train/outputs_json",
     'classes': [
         'finger-1', 'finger-2', 'finger-3', 'finger-4', 'finger-5',
         'finger-6', 'finger-7', 'finger-8', 'finger-9', 'finger-10',

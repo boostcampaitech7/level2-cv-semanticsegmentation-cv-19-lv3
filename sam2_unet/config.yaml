@@ -4,8 +4,8 @@ test_data_path: /data/ephemeral/home/data/test
 hiera_path: /data/ephemeral/home/sam2_hiera_large.pt
 
 # train
-train_batch_size: 2
-train_num_workers: 2
+train_batch_size: 4
+train_num_workers: 4
 
 # valid
 valid_batch_size: 2
@@ -25,7 +25,7 @@ random_seed: 2024
 lr: 1e-3
 max_epoch: 40
 smooth_factor: 0.1
-scaler: False
+scaler: True
 
 # optimizer
 optimizer: adamw
@@ -58,7 +58,7 @@ save_every: 5
 image_size: 1024
 
 # wandb
-wandb_name: sam2unet_1024_best
+wandb_name: sam2unet_1024
 wandb_id: 
 
 # resume

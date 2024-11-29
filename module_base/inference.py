@@ -104,7 +104,7 @@ def do_inference(image_root, save_dir, random_seed, model_type):
     model = torch.load(os.path.join(save_dir, "best_model.pt"))
     
     test_trans = TransformSelector('albumentation')
-    test_tf = test_trans.get_transform(False, 512)
+    test_tf = test_trans.get_transform(False, 1024)
     test_dataset = XRayInferenceDataset(fnames, image_root,transforms=test_tf)
     
     test_loader = DataLoader(
@@ -127,7 +127,7 @@ def do_inference(image_root, save_dir, random_seed, model_type):
         "rle": rles,
     })
     
-    df.to_csv("output.csv", index=False)
+    df.to_csv("best_hrnet_prepro(BrightnessContrast&CLAHE).csv", index=False)
 
 def main(args):
     do_inference(**args.__dict__)

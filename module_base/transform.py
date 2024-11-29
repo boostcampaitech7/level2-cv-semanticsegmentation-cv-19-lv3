@@ -25,16 +25,12 @@ class TransformSelector:
     이미지 변환 라이브러리를 선택하기 위한 클래스.
     """
     def __init__(self, transform_type):
-
-        # 지원하는 변환 라이브러리인지 확인
         if transform_type in ["albumentation"]:
             self.transform_type = transform_type
         else:
             raise ValueError("Unknown transformation library specified.")
         
     def get_transform(self, is_train, resize):
-        
-        # 선택된 라이브러리에 따라 적절한 변환 객체를 생성
         if self.transform_type == 'albumentation':
             transform = AlbumentationTransform(is_train, resize)
         

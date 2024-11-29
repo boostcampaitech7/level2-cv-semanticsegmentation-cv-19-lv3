@@ -34,7 +34,7 @@ class FocalLoss(nn.Module):
 
     def forward(self, preds, targets):
         # CE() -> -log(pt), FL() -> -a*((1-pt)^r) * log(pt)
-        BCE = F.binary_cross_entropy_with_logits(preds, targets) # CE
+        BCE = F.binary_cross_entropy_with_logits(preds, targets) # 1회성 BCE
         BCE_EXP = torch.exp(-BCE)
         loss = self.alpha * (1-BCE_EXP)**self.gamma * BCE
 

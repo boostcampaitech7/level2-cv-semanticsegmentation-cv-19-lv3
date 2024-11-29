@@ -1,5 +1,5 @@
 _base_ = [
-    '../_base_/xraydata2.py',
+    '../_base_/cleansed_xraydata2.py',
     '../_base_/default_runtime.py', '../_base_/schedule_160k.py'
 ]
 
@@ -45,7 +45,7 @@ model = dict(
         loss_decode=dict(
             type='CrossEntropyLoss', use_sigmoid=True, loss_weight=1.0)),
     auxiliary_head=dict(
-        type='FCNHead',
+        type='FCNHeadWithoutAccuracy',
         in_channels=1024,
         in_index=2,
         channels=256,
@@ -62,36 +62,6 @@ model = dict(
     test_cfg=dict(mode='whole'))
 
 
-iters = 30000
-# optimizer
-optimizer = dict(
-    type='AdamW', lr=0.0001, betas=(0.9, 0.999), weight_decay=0.0001)
-# optimizer
-optim_wrapper = dict(
-    type='OptimWrapper',
-    optimizer=optimizer,
-    clip_grad=dict(max_norm=0.01, norm_type=2),
-    paramwise_cfg=dict(
-        custom_keys={'backbone': dict(lr_mult=0.1, decay_mult=1.0)}))
-param_scheduler = [
-    dict(
-        type='PolyLR',
-        eta_min=0,
-        power=0.9,
-        begin=0,
-        end=iters,
-        by_epoch=False)
-]
-
-# training schedule for 300k
-train_cfg = dict(
-    type='IterBasedTrainLoop', max_iters=iters, val_interval=iters // 15)
-val_cfg = dict(type='ValLoop')
-test_cfg = dict(type='TestLoop')
 
 # train_dataloader = dict(batch_size=2)
-# Default setting for scaling LR automatically
-#   - `enable` means enable scaling LR automatically
-#       or not by default.
-#   - `base_batch_size` = (4 GPUs) x (2 samples per GPU).
-auto_scale_lr = dict(enable=False, base_batch_size=2)
+# auto_scale_lr = dict(enable=False, base_batch_size=2)

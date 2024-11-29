@@ -1,4 +1,4 @@
-IMAGE_SIZE = (1580, 1580)
+IMAGE_SIZE = (2048, 2048)
 IMAGE_ROOT = '/data/ephemeral/home/cleansed_data/train/DCM'
 LABEL_ROOT = '/data/ephemeral/home/cleansed_data/train/outputs_json'
 SUBMISSION_PATH = '/data/ephemeral/home/submission'
@@ -15,12 +15,12 @@ train_pipeline = [
                 type='Albu',  # Albumentations를 이용한 변환
                 transforms=[
                     dict(type='HorizontalFlip', p=0.5),  # 수평 뒤집기
-                    dict(type='ShiftScaleRotate', shift_limit=0.0, scale_limit=0.0, rotate_limit=20, p=0.5),  # 회전
+                    dict(type='ShiftScaleRotate', shift_limit=0.0, scale_limit=0.0, rotate_limit=15, p=0.5),  # 회전
                     dict(
                         type='ElasticTransform',  # 탄성 변환
                         alpha=10,
-                        sigma=100,
-                        p=0.8,
+                        sigma=50,
+                        p=0.5,
                     ),
                 ]
             ),

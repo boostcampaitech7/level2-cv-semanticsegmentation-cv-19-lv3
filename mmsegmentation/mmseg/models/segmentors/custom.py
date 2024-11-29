@@ -69,10 +69,11 @@ class PostProcessResultMixin:
             else:
                 i_seg_logits = seg_logits[i]
 
-            if self.module.decode_head.threshold:
-                threshold = self.module.decode_head.threshold
-            else:
-                threshold = 0.5
+            # if self.module.decode_head.threshold:
+            #     threshold = self.module.decode_head.threshold
+            # else:
+            #     threshold = 0.5
+            threshold = 0.45
             
             i_seg_logits = i_seg_logits.sigmoid()
             i_seg_pred = (i_seg_logits > threshold).to(i_seg_logits)

@@ -23,7 +23,7 @@ CLASSES = [
 
 CLASS2IND = {v: i for i, v in enumerate(CLASSES)}
 IND2CLASS = {v: k for k, v in CLASS2IND.items()}
-val_fold_num = 2
+val_fold_num = 0
 
 
 @DATASETS.register_module()
@@ -79,8 +79,8 @@ class XRayDataset2(BaseSegDataset):
         labelnames = []
         for i, (x, y) in enumerate(gkf.split(_filenames, ys, groups)):
             if self.is_train:
-                if i == val_fold_num:
-                    continue
+                # if i == val_fold_num:
+                #     continue
 
                 filenames += list(_filenames[y])
                 labelnames += list(_labelnames[y])

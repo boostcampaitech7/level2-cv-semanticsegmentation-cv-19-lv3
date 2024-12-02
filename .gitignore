@@ -5,6 +5,7 @@
 
 
 # 결과 파일 제외
+*.yaml
 *.csv
 
 # python cache 제외
@@ -19,5 +20,8 @@ __pycache__
 *.tar.gz
 *.xlsx
 
-#wandb
+# wandb
 wandb/
+
+# mmsegmentation 제외
+.out

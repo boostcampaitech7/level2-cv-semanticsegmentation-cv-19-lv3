@@ -1,8 +1,6 @@
 # 📋 Project Overview
 
 
-![project_image](https://github.com/user-attachments/assets/15a67fec-8077-492e-a517-f4a0cee5acbf)
-
 뼈는 우리 몸의 구조와 기능에 중요한 영향을 미치기 때문에, 정확한 뼈 분할은 의료 진단 및 치료 계획을 개발하는 데 필수적입니다.
 
 Bone Segmentation은 인공지능 분야에서 중요한 응용 분야 중 하나로, 특히, 딥러닝 기술을 이용한 뼈 Segmentation은 많은 연구가 이루어지고 있으며, 다양한 목적으로 도움을 줄 수 있습니다.
@@ -36,12 +34,83 @@ hand bone x-ray 객체가 담긴 이미지가 모델의 인풋으로 사용됩�
 ![image](https://github.com/user-attachments/assets/7a596f2c-e7e2-415f-872a-d812a7b47825)
 
 -  image, target 시각화 및 pixel 별로 예측해야할 29개의 classes
-  
-![image](https://github.com/user-attachments/assets/3474aac7-4542-4437-ad49-514a9dd72212)
 
 <br/>
 <br/>
 <br/>
+
+# 📁 Project Structure
+```plaintext
+.
+├── .github/
+├── augmentation/
+│   ├── copy_data.py
+│   ├── hflip.py
+│   ├── outlier.py
+│   ├── psnr.py
+├── UNet++/
+│   ├── cv/
+│   ├── requirements.txt
+├── mmsegmentation/
+│   ├── configs/
+│   ├── mmseg/
+│   ├── tools/
+│   ├── baseline.py
+│   ├── custom_inference.py
+│   ├── custom_train.py
+├── module_base/
+│   ├── config.yaml
+│   ├── dataset.py
+│   ├── inference.py
+│   ├── loss.py
+│   ├── model.py
+│   ├── optimizer.py
+│   ├── scheduler.py
+│   ├── train.py
+│   ├── transform.py
+│   ├── wandb_logger.py
+│   ├── wandb_train.py
+├── sam2_unet/
+│   ├── sam2/
+│   ├── sam2_configs/
+│   ├── utils/
+│   ├── SAM2UNet.py
+│   ├── config.yaml
+│   ├── test.py
+│   ├── train.py
+│   ├── trainer.py
+├── streamlit/
+│   ├── compare.py
+│   ├── load.py
+│   ├── main.py
+│   ├── visualize.py
+│   ├── visualize_rle.py
+├── utils/
+│   ├── .gitignore
+│   ├── README.md
+│   ├── meta_data_set.py
+│   ├── pseudo_labeling.py
+```
+
+# How To Use
+
+## MMSegmentation
+- MMSegmentation Install 후 본 Project 폴더를 그대로 Copy & Paste하여 활용
+```plaintext
+# train
+python custom_train.py --config_path {path_to_your_config} --work_dir {path_to_your_save_dir_for_logging}
+
+# inference
+python custom_inference.py --config_path {path_to_your_config} --checkpoint_path {path_to_your_weights} --work_dir {path_to_your_save_dir_for_logging} --submission_path {where_to_save_your_submission_csv} --tta
+```
+
+## SAM2Unet
+```plaintext
+```
+
+## Module_base
+```plaintext
+```
 
 # 😄 Team Member
 
@@ -73,48 +142,24 @@ hand bone x-ray 객체가 담긴 이미지가 모델의 인풋으로 사용됩�
 </table>
 
 <br/>
+<br/>
 
+# 🏆 Project Result
 
+**_<p align=center>Public Leader Board</p>_**
+<img src="https://github.com/user-attachments/assets/94bd97fc-518d-4c69-b45e-69466d8e3bb1" alt="Public Leader Board" >
 
-## 🔗 Reference
-
-### [📎 Segmentation Notion](https://www.notion.so/Hand-Bone-Image-Segmentation-13bcb8c4237680f0baeef241f0f6856b)
 
 <br>
 
-## Commit Convention
+**_<p align=center>Private Leader Board</p>_**
+<img src="https://github.com/user-attachments/assets/85c200c3-30db-48d1-a2a7-3f5d15eed143" alt="Private Leader Board" >
 
-1. `Feature` : **새로운 기능 추가**
-2. `Fix` : **버그 수정**
-3. `Docs` : **문서 수정**
-4. `Style` : **코드 포맷팅 → Code Convention**
-5. `Refactor` : **코드 리팩토링**
-6. `Test` : **테스트 코드**
-7. `Comment` : **주석 추가 및 수정**
+<br>
 
-커밋할 때 헤더에 위 내용을 작성하고 전반적인 내용을 간단하게 작성합니다.
+## 🔗 Reference
 
-### 예시
+### [📎 Segmentation Notion](https://typhoon-jackal-68b.notion.site/Hand-Bone-Image-Segmentation-13bcb8c4237680f0baeef241f0f6856b?pvs=4)
 
-- `git commit -m "[#issue] Feature : message content"`
+<br>
 
-커밋할 때 상세 내용을 작성해야 한다면 아래와 같이 진행합니다.
-
-### 예시
-
-> `git commit`  
-> 어떠한 에디터로 진입하게 된 후 아래와 같이 작성합니다.  
-> `[header]: 전반적인 내용`  
-> . **(한 줄 비워야 함)**  
-> 상세 내용
-
-<br/>
-
-## Branch Naming Convention
-
-브랜치를 새롭게 만들 때, 브랜치 이름은 항상 위 `Commit Convention`의 Header와 함께 작성되어야 합니다.
-
-### 예시
-
-- `Feature/~~~`
-- `Refactor/~~~`

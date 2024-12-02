@@ -147,7 +147,7 @@ def train(model, train_loader, val_loader, criterion, optimizer, scheduler, cfg)
                     f'Loss: {round(loss.item(),4)}'
                 )
         scheduler.step()
-        # validation 주기에 따라 loss를 출력하고 best model을 저장합니다.
+        # validation 주기에 따라 loss를 출력하고 best model을 저장
         if (epoch + 1) % cfg.val_every == 0:
             dice = validation(epoch + 1, model, val_loader, criterion, cfg.model_type)
             

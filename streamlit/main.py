@@ -8,8 +8,11 @@ import pandas as pd
 
 
 info = {
-    'image_root': "/data/ephemeral/home/sy/level2-cv-semanticsegmentation-cv-19-lv3/data/test/DCM",
-    'label_root': "/data/ephemeral/home/sy/level2-cv-semanticsegmentation-cv-19-lv3/data/train/outputs_json",
+
+    'image_root': "/data/ephemeral/home/cleansed_data/train/DCM",
+    'all_image_root': "/data/ephemeral/home/all_pngs",
+    'label_root': "/data/ephemeral/home/cleansed_data/train/outputs_json",
+
     'classes': [
         'finger-1', 'finger-2', 'finger-3', 'finger-4', 'finger-5',
         'finger-6', 'finger-7', 'finger-8', 'finger-9', 'finger-10',
@@ -131,5 +134,13 @@ if option == "RLE Visualization":
     image_index_input = st.sidebar.number_input('Enter image index', min_value=0, max_value=len(st.session_state.images)-image_count*image_line, value=image_index, step=image_count*image_line)
     if image_index != image_index_input:
         image_index = image_index_input
+    with st.sidebar.form(key="image name form"):
+        image_name = st.text_input("Enter image name")
+        submit_button = st.form_submit_button("OK")
+        if submit_button:
+            try:
+                image_index = st.session_state.images.index(image_name)
+            except Exception as e:
+                st.sidebar.error("failed :(")
     for i in range(image_index, image_index + image_line*image_count, image_count):
         visualize_rle.show(info, st.session_state.df, st.session_state.images[i:i+image_count], st.session_state.anno)

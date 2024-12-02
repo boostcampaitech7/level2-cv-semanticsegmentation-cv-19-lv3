@@ -23,23 +23,22 @@ class DiceLoss(nn.Module):
 
         dice = (2. * intersection + self.eps) / (torch.sum(preds_f, -1) + torch.sum(targets_f, -1) + self.eps)
         loss = 1 - dice
-        
+
         return loss.mean()
 
 class FocalLoss(nn.Module):
-    def __init__(self, alpha=0.25, gamma=2):
+    def __init__(self, alpha=0.4, gamma=1):
         super(FocalLoss, self).__init__()
         self.alpha = alpha # 각 클래스에 대한 가중치 조정
         self.gamma = gamma # Easy sample에 대한 loss 조절 (커질수록 loss가 줄어듦)
 
     def forward(self, preds, targets):
         # CE() -> -log(pt), FL() -> -a*((1-pt)^r) * log(pt)
-        BCE = F.binary_cross_entropy_with_logits(preds, targets) # CE
+        BCE = F.binary_cross_entropy_with_logits(preds, targets) # 1회성 BCE
         BCE_EXP = torch.exp(-BCE)
         loss = self.alpha * (1-BCE_EXP)**self.gamma * BCE
 
         return loss
-
 
 class DiceBCELoss(nn.Module):
     def __init__(self, **kwargs):
@@ -56,7 +55,7 @@ class DiceBCELoss(nn.Module):
 
 class DiceFocalLoss(nn.Module):
     def __init__(self):
-        super(DiceFocalLoss).__init__()
+        super(DiceFocalLoss, self).__init__()
         self.diceLoss = DiceLoss()
         self.focalLoss = FocalLoss()
     

@@ -4,8 +4,9 @@ import json
 import cv2
 import numpy as np
 import torch
+import pandas as pd
 from torch.utils.data import Dataset
-from sklearn.model_selection import GroupKFold
+from sklearn.model_selection import StratifiedGroupKFold
 
 CLASSES = [
     'finger-1', 'finger-2', 'finger-3', 'finger-4', 'finger-5',
@@ -29,26 +30,35 @@ class XRayDataset(Dataset):
         
         groups = [os.path.dirname(fname) for fname in fnames]
         
-        # dummy label
-        ys = [0 for fname in fnames]
+        meta_data = pd.read_excel('update_meta_data.xlsx')
         
-        gkf = GroupKFold(n_splits=5)
+        # dummy label
+        ys = []
+        for fname in fnames:
+            folder_name = os.path.dirname(fname)
+            id_number = int(folder_name[2:])
+            
+            row = meta_data.iloc[id_number - 1]
+            ys.append(row['rotate'])
+        
+
+        gkf = StratifiedGroupKFold(n_splits=5)
         
         filenames = []
         labelnames = []
         for i, (x, y) in enumerate(gkf.split(fnames, ys, groups)):
-            if self.is_train: # k번 빼고 학습
+            if self.is_train:
                 if i == self.kfold:
                     continue
                 filenames += list(fnames[y])
                 labelnames += list(labels[y])
             
             else:  # k번은 검증
-                if i != self.kfold:
-                    continue
-                filenames = list(fnames[y])
-                labelnames = list(labels[y])
-        
+                if i == self.kfold:
+                    filenames = list(fnames[y])
+                    labelnames = list(labels[y])
+                    break
+                
         self.filenames = filenames
         self.labelnames = labelnames
     
@@ -66,7 +76,7 @@ class XRayDataset(Dataset):
         label_path = os.path.join(self.label_root, label_name)
         
         # (H, W, NC) 모양의 label을 생성합니다.
-        label_shape = tuple(image.shape[:2]) + (len(CLASSES), )
+        label_shape = tuple(image.shape[:2]) + (len(CLASSES), ) # (2048, 2048, 29)
         label = np.zeros(label_shape, dtype=np.uint8)
         
         # label 파일을 읽습니다.
@@ -76,13 +86,13 @@ class XRayDataset(Dataset):
         
         # 클래스 별로 처리합니다.
         for ann in annotations:
-            c = ann["label"]
-            class_ind = self.class2ind[c]
-            points = np.array(ann["points"])
+            c = ann["label"] # class name
+            class_ind = self.class2ind[c] # to index
+            points = np.array(ann["points"]) # mask
             
             # polygon 포맷을 dense한 mask 포맷으로 바꿉니다.
-            class_label = np.zeros(image.shape[:2], dtype=np.uint8)
-            cv2.fillPoly(class_label, [points], 1)
+            class_label = np.zeros(image.shape[:2], dtype=np.uint8) # (2048, 2048)
+            cv2.fillPoly(class_label, [points], 1) # points 좌표의 점을 1로 채우기
             label[..., class_ind] = class_label
         
         if self.transforms is not None:
@@ -98,6 +108,33 @@ class XRayDataset(Dataset):
         
         image = torch.from_numpy(image).float()
         label = torch.from_numpy(label).float()
+        
+        return image, label
+
+class XRayDatasetWithMixup(XRayDataset):
+    def __init__(self, fnames, labels, image_root, label_root, kfold=0, transforms=None, 
+                is_train=True, mixup_prob=0.5, mixup_alpha=0.5):
+        super().__init__(fnames, labels, image_root, label_root, kfold, transforms, is_train)
+        self.mixup_prob = mixup_prob  # mixup을 적용할 확률
+        self.mixup_alpha = mixup_alpha  # Beta 분포의 알파 값
+        
+    def __getitem__(self, item):
+        image, label = super().__getitem__(item)
+        
+        # 학습 시에만 mixup을 적용하고, mixup_prob 확률로 적용
+        if self.is_train and torch.rand(1) < self.mixup_prob:
+            # 랜덤하게 다른 인덱스 선택
+            other_idx = torch.randint(len(self), size=(1,)).item()
+            other_image, other_label = super().__getitem__(other_idx)
+            
+            # Beta 분포에서 혼합 비율 샘플링
+            lam = np.random.beta(self.mixup_alpha, self.mixup_alpha)
+            
+            # 이미지와 라벨 혼합
+            mixed_image = lam * image + (1 - lam) * other_image
+            mixed_label = lam * label + (1 - lam) * other_label
+            
+            return mixed_image, mixed_label
         
         return image, label
 

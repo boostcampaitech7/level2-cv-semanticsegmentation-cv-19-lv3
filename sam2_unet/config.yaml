@@ -1,0 +1,66 @@
+# paths
+train_data_path: /data/ephemeral/home/data/train
+test_data_path: /data/ephemeral/home/data/test
+hiera_path: /data/ephemeral/home/sam2_hiera_large.pt
+
+# train
+train_batch_size: 4
+train_num_workers: 4
+
+# valid
+valid_batch_size: 2
+valid_num_workers: 2
+kfold: 5
+k: 0
+threshold: 0.5
+valid_every: 2
+
+# test
+test_batch_size: 2
+test_num_workers: 2
+save_file: output.csv
+
+# hyperparameter
+random_seed: 2024
+lr: 1e-3
+max_epoch: 40
+smooth_factor: 0.1
+scaler: True
+
+# optimizer
+optimizer: adamw
+optimizer_parameters:
+  weight_decay: 1e-6
+
+# scheduler
+scheduler: cosineannealinglr
+scheduler_parameters:
+  # steplr
+  # step_size: 40
+  # gamma: 0.1
+
+  # multisteplr
+  # milestones: [10, 20]
+  # gamma: 0.1
+  
+  # cosineannealinglr
+  T_max: 40
+  eta_min: 5e-5
+  
+  # reducelronplateau
+  # factor: 0.1
+  # patience: 5
+
+# save
+save_every: 5
+
+# augmentation
+image_size: 1024
+
+# wandb
+wandb_name: sam2unet_1024
+wandb_id: 
+
+# resume
+resume: False
+ckpt_path: ./checkpoints/checkpoint.pth

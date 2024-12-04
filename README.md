@@ -106,6 +106,11 @@ python custom_inference.py --config_path {path_to_your_config} --checkpoint_path
 
 ## SAM2Unet
 ```plaintext
+# train
+python train.py --config {path_to_your_config}
+
+# inference
+python test.py --config {path_to_your_config} --checkpoint {path_to_your_checkpoint}
 ```
 
 ## Module_base

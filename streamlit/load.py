@@ -1,7 +1,9 @@
 import os
 import numpy as np
 import pandas as pd
+import streamlit as st
 
+@st.cache_data
 def load(info, mode='train'):
     images = {
         os.path.relpath(os.path.join(root, fname), start=info['image_root'].format(mode))
@@ -19,11 +21,10 @@ def load(info, mode='train'):
 
     images = sorted(images)
     labels = sorted(labels)
-    images = np.array(images)
-    labels = np.array(labels)
 
     return images, labels
 
+@st.cache_data
 def load_csv(info, csv_path, mode='train'):
     df = pd.read_csv(csv_path)
     image_path_list = {

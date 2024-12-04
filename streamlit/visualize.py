@@ -18,9 +18,9 @@ def show(info, images, labels, ids, anno='All'):
         image_right = Image.open(image_path_right).convert("RGB")
         if mode == 'test':
             with cols[2 * i]:
-                st.image(image_left, caption=images[ids[i] + 1], use_container_width=True)
+                st.image(image_left, caption=images[ids[i] + 1])
             with cols[2 * i + 1]:
-                st.image(image_right, caption=images[ids[i] + 1], use_container_width=True)
+                st.image(image_right, caption=images[ids[i] + 1])
             continue
 
         label_path_left = os.path.join(info['label_root'], labels[ids[i] + 1])
@@ -52,7 +52,7 @@ def show(info, images, labels, ids, anno='All'):
         overlay_image = cv2.addWeighted(np.array(image_left), 0.5, mask_left, 0.5, 0)
         final_image = cv2.addWeighted(overlay_image, 1, contour_mask_left, 1, 0)
         with cols[2 * i]:
-            st.image(final_image, caption=images[ids[i] + 1], use_container_width=True)
+            st.image(final_image, caption=images[ids[i] + 1])
 
         mask_right = np.zeros((*image_right.size[::-1], 3), dtype=np.uint8)
         contour_mask_right = np.zeros((*image_right.size[::-1], 3), dtype=np.uint8)
@@ -78,4 +78,4 @@ def show(info, images, labels, ids, anno='All'):
         overlay_image = cv2.addWeighted(np.array(image_right), 0.5, mask_right, 0.5, 0)
         final_image = cv2.addWeighted(overlay_image, 1, contour_mask_right, 1, 0)
         with cols[2 * i + 1]:
-            st.image(final_image, caption=images[ids[i]], use_container_width=True)
+            st.image(final_image, caption=images[ids[i]])

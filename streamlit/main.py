@@ -1,55 +1,80 @@
 import os
 import numpy as np
 import pandas as pd
+import load
+import compare
+import visualize
+import visualize_rle
 import streamlit as st
-import load, visualize, visualize_rle, compare
 
-def configure_sidebar(info, images, key_prefix="default"):
+def configure_sidebar(info: dict, images: list, key_prefix: str="default") -> tuple:
     with st.sidebar.form(key=f"{key_prefix}_anno_form"):
-        anno = st.selectbox("Select annotation", ['All'] + info['classes'], key=f"{key_prefix}_anno")
+        anno = st.selectbox(
+            label="Select annotation",
+            options=['All']+info['classes'],
+            key=f"{key_prefix}_anno"
+        )
         submit_button = st.form_submit_button("OK")
-    
-    image_count = st.sidebar.slider('Select image counts', 2, 8, 2, 2, key=f"{key_prefix}_count")
-    image_line = st.sidebar.slider('Select image lines', 1, 4, 1, key=f"{key_prefix}_line")
-    
-    max_index = max(0, len(images) - image_count * image_line)
-    image_index = st.sidebar.slider('Select image index', 0, max_index, key=f"{key_prefix}_index")
-    image_index_input = st.sidebar.number_input(
+    count = st.sidebar.slider('Select image counts', 2, 8, 2, 2, key=f"{key_prefix}_count")
+    line = st.sidebar.slider('Select image lines', 1, 4, 1, key=f"{key_prefix}_line")
+    max_index = max(0, len(images) - count * line)
+    index = st.sidebar.slider('Select image index', 0, max_index, key=f"{key_prefix}_index")
+    index_input = st.sidebar.number_input(
         'Enter image index', 
-        min_value=0, 
-        max_value=max_index, 
-        value=image_index,
-        step=image_count * image_line, 
+        min_value=0,
+        max_value=max_index,
+        value=index,
+        step=count * line,
         key=f"{key_prefix}_index_input"
     )
 
-    if image_index != image_index_input:
-        image_index = image_index_input
+    if index != index_input:
+        index = index_input
 
     with st.sidebar.form(key="image name form"):
         image_name = st.text_input("Enter image name")
         submit_button = st.form_submit_button("OK")
         if submit_button and image_name:
             try:
-                image_index = images.index(image_name)
-                st.sidebar.success(f"Found at index {image_index}.")
-            except IndexError:
-                st.sidebar.error(f"Not Found")
-            except Exception as e:
-                st.sidebar.error(f"An error occurred: {str(e)}")
+                index = images.index(image_name)
+                st.sidebar.success(f"Found at index {index}")
+            except Exception:
+                st.sidebar.error(f"Not Found '{image_name}'")
 
-    return anno, image_count, image_line, image_index
+    return anno, count, line, index
 
-def main(info):
-    st.sidebar.success("CV19 영원한종이박")
-    st.markdown("<h2 style='text-align: center;'>Hand Bone Image Segmentation</h2>", unsafe_allow_html=True)
+def main(info: dict) -> None:
+    st.sidebar.success(body="CV19 Forever Paper Box")
+    st.markdown(
+        body="<h2 style='text-align: center;'>Hand Bone Image Segmentation</h2>",
+        unsafe_allow_html=True
+    )
 
-    option = st.sidebar.radio("option", ["Train Visualization", "Validation Compare", "Test Visualization", "RLE Visualization"])
+    option = st.sidebar.radio(
+        label="option",
+        options=[
+            "Train Visualization",
+            "Validation Compare",
+            "Test Visualization",
+            "RLE Visualization"
+        ]
+    )
+
     if option == "Train Visualization":
         st.session_state.images, st.session_state.labels = load.load(info, 'train')
-        anno, image_count, image_line, image_index = configure_sidebar(info, st.session_state.images, key_prefix="train")
-        for i in range(image_index, image_index + image_count * image_line, image_count):
-            visualize.show(info, st.session_state.images, st.session_state.labels, [j for j in range(i, i + image_count, 2)], anno)
+        anno, count, line, index = configure_sidebar(
+            info=info,
+            images=st.session_state.images,
+            key_prefix="train"
+        )
+        for i in range(index, index + count * line, count):
+            visualize.show(
+                info=info,
+                images=st.session_state.images,
+                labels=st.session_state.labels,
+                ids=list(range(i, i + count, 2)),
+                anno=anno
+            )
 
     if option == "Validation Compare":
         with st.sidebar.form(key="csv form"):
@@ -65,16 +90,34 @@ def main(info):
             st.stop()
         if not st.session_state.df.empty:
             st.session_state.images = st.session_state.df['image_name'].unique().tolist()
-            anno, image_count, image_line, image_index = configure_sidebar(info, st.session_state.images, key_prefix="valid")
-            for i in range(image_index, image_index + image_line, 1):
-                compare.show(info, st.session_state.df, st.session_state.images[i], anno)
-
+            anno, count, line, index = configure_sidebar(
+                info=info,
+                images=st.session_state.images,
+                key_prefix="valid"
+            )
+            for i in range(index, index+line, 1):
+                compare.show(
+                    info=info,
+                    df=st.session_state.df,
+                    image_name=st.session_state.images[i],
+                    anno=anno
+                )
 
     if option == "Test Visualization":
         st.session_state.images, _ = load.load(info, 'test')
-        anno, image_count, image_line, image_index = configure_sidebar(info, st.session_state.images, key_prefix="test")
-        for i in range(image_index, image_index + image_count * image_line, image_count):
-            visualize.show(info, st.session_state.images, np.array([]), [j for j in range(i, i + image_count, 2)], '')
+        anno, count, line, index = configure_sidebar(
+            info=info,
+            images=st.session_state.images,
+            key_prefix="test"
+        )
+        for i in range(index, index+count*line, count):
+            visualize.show(
+                info=info,
+                images=st.session_state.images,
+                labels=np.array([]),
+                ids=list(range(i, i + count, 2)),
+                anno=''
+            )
 
     if option == "RLE Visualization":
         csv_file = st.sidebar.file_uploader("Upload RLE CSV file", type="csv")
@@ -92,14 +135,23 @@ def main(info):
             st.sidebar.success("csv file load successed :)")
         if st.session_state.df.empty:
             st.stop()
-        if not st.session_state.df.empty:
+        elif not st.session_state.df.empty:
             with st.sidebar.form(key="detail form"):
                 st.session_state.anno = st.selectbox("select annotation", ['All'] + info['classes'])
                 submit_button = st.form_submit_button("OK")
         st.session_state.images = st.session_state.df['image_name'].unique().tolist()
-        anno, image_count, image_line, image_index = configure_sidebar(info, st.session_state.images, key_prefix="rle")
-        for i in range(image_index, image_index + image_line*image_count, image_count):
-            visualize_rle.show(info, st.session_state.df, st.session_state.images[i:i+image_count], anno)
+        anno, count, line, index = configure_sidebar(
+            info=info,
+            images=st.session_state.images,
+            key_prefix="rle"
+        )
+        for i in range(index, index + line*count, count):
+            visualize_rle.show(
+                info=info,
+                df=st.session_state.df,
+                images=st.session_state.images[i:i+count],
+                anno=anno
+            )
 
 if __name__ == "__main__":
     current_dir = os.path.dirname(os.path.abspath(__file__))
@@ -131,10 +183,10 @@ if __name__ == "__main__":
     }
 
     if "images" not in st.session_state:
-        st.session_state.images = list()
+        st.session_state.images = []
     if "labels" not in st.session_state:
-        st.session_state.labels = list()
+        st.session_state.labels = []
     if "df" not in st.session_state:
         st.session_state.df = pd.DataFrame()
-        
+
     main(info)

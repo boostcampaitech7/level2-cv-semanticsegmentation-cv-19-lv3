@@ -1,0 +1,53 @@
+# 데이터 및 모델 저장 경로
+image_root: 본인 이미지 경로 추가
+label_root: 본인 레이블 경로 추가
+save_dir: 모델 저장 경로 추가
+
+# 모델 라이브러리 및 사용 모델 정의
+model_type: smp
+model_name: UnetPlusPlus
+encoder_name: efficientnet-b2
+encoder_weights: imagenet
+pretrained: True
+
+# batch_size
+train_batch_size: 2
+valid_batch_size: 4
+
+# hyperparameter
+lr: 1e-4
+weight_decay: 1e-6
+train_num_workers: 4
+valid_num_workers: 0
+max_epoch: 60
+step: 4 # batch_size 효과
+
+# loss
+loss:
+
+    name: DiceBCELoss
+
+    params: null
+
+# optimizer
+optim: Adam
+
+# scheduler
+scheduler: cosine
+
+# validation 인자
+kfold: 0
+val_every: 2
+threshold: 0.5
+
+# random seed
+random_seed: 2024
+
+# resize
+size: 2048
+
+# wandb
+
+wandb_run_name: smp
+
+wandb_run_id: None

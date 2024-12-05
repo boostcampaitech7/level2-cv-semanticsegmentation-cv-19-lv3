@@ -16,7 +16,8 @@ Bone Segmentation은 인공지능 분야에서 중요한 응용 분야 중 하�
 
 
 - Input : 
-    - hand bone x-ray 객체가 담긴 이미지가 모델의 인풋으로 사용됩니다. segmentation annotation은 json file로 제공됩니다.
+    - hand bone x-ray 객체가 담긴 이미지가 모델의 인풋으로 사용됩니다.
+    - segmentation annotation은 json file로 제공됩니다.
 
 - Output :
 

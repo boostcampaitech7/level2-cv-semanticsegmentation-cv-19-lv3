@@ -165,6 +165,7 @@ python test.py --config {path_to_your_config} --checkpoint {path_to_your_checkpo
 ## 🔗 Reference
 
 ### [📎 Segmentation Notion](https://typhoon-jackal-68b.notion.site/Hand-Bone-Image-Segmentation-13bcb8c4237680f0baeef241f0f6856b?pvs=4)
+### [📎 Wrapup Report](https://drive.google.com/file/d/16JiuSqBly_KZjU3llmOk3-TqeC8OdEIU/view?usp=sharing)
 
 <br>
 

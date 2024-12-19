@@ -6,6 +6,13 @@ from mmseg.models.decode_heads import ASPPHead, FCNHead, SegformerHead, UPerHead
 
 
 class LossByFeatMixIn:
+    """
+    기존 BaseDecoderHead에서 Accuracy를 계산하여 return하는 부분을 제거하기 위해
+    loss_by_feat method를 오버라이딩.
+    accuracy function이 single class만 고려하기 때문에 오류를 피하기 위해 오버라이딩.
+    """
+    
+    
     def loss_by_feat(self, seg_logits, batch_data_samples) -> dict:
         """Compute segmentation loss.
 

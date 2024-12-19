@@ -40,6 +40,19 @@ num_classes = len(CLASSES)
 
 @METRICS.register_module()
 class SubmissionMetric(BaseMetric):
+    """ 따로 test code를 작성하지 않고 runner.test()만으로 제출파일을 생성하기 위한 Metric Class
+        Args:
+        collect_device (str): Device name used for collecting results from
+            different ranks during distributed training. Must be 'cpu' or
+            'gpu'. Defaults to 'cpu'.
+        prefix (str, optional): The prefix that will be added in the metric
+            names to disambiguate homonymous metrics of different evaluators.
+            If prefix is not provided in the argument, self.default_prefix
+            will be used instead. Default: None
+        save_path (str) : submission.csv와 시각화 결과를 저장할 경로
+        max_vis_cnt (int) : 최대 몇개의 test image를 시각화할 것인지
+        multi_label (bool) : 시각화 시 Multi label을 고려하는 경우와 아닌 경우 처리가 달라지기 때문에 정의
+    """
     def __init__(self,
                  collect_device='cpu',
                  prefix=None,
@@ -49,7 +62,7 @@ class SubmissionMetric(BaseMetric):
                  **kwargs):
         super().__init__(collect_device=collect_device, prefix=prefix)
         self.save_path = save_path
-        if self.save_path == '':
+        if not self.save_path:
             self.save_path = '/data/ephemeral/home/submission'
         
         os.makedirs(self.save_path, exist_ok=True)
@@ -58,10 +71,12 @@ class SubmissionMetric(BaseMetric):
         self.max_vis_cnt = max_vis_cnt
         self.multi_label=multi_label
         
-        # self.rles = []
-        # self.filename_and_class = []
         
     def label2rgb(self, label):
+        '''
+        label: numpy array mask (C, H, W)
+        Returns mask image
+        '''
         label = np.array(label)
         image_size = label.shape[1:] + (3, )
         image = np.zeros(image_size, dtype=np.uint8)
@@ -110,6 +125,17 @@ class SubmissionMetric(BaseMetric):
     
 
     def decode_rle_to_mask(self, rle, height, width):
+        """
+        make mask image from rle string
+        
+        Parameters :
+        - rle : string which contains rle info of mask
+        - height : image height
+        - width : image width
+        
+        Returns :
+        - img : numpy array of shape (height, width) where each pixel contains class number
+        """
         s = rle.split()
         starts, lengths = [np.asarray(x, dtype=int) for x in (s[0:][::2], s[1:][::2])]
         starts -= 1
@@ -123,6 +149,12 @@ class SubmissionMetric(BaseMetric):
     
     
     def process(self, data_batch, data_samples):
+        """
+        process model outputs and save to self.results
+        Parameters :
+        - data_batch
+        - data_samples : batched model outputs. list of dictionary
+        """
         for data_sample in data_samples:
             img_path = data_sample['img_path']
             img_name = os.path.basename(img_path).split('_')[1]
@@ -144,7 +176,7 @@ class SubmissionMetric(BaseMetric):
                 preds.append(pred)
                 self.results.append((rle, f"{CLASSES[i]}_{img_name}"))
             
-            
+            # 정해진 갯수까지 시각화
             if self.cnt < self.max_vis_cnt:
                 self.cnt += 1
                 fig, ax = plt.subplots(1, 2, figsize=(24, 12))
@@ -155,8 +187,17 @@ class SubmissionMetric(BaseMetric):
                 plt.close()
             
         
-            
+    
     def compute_metrics(self, results):
+        """
+        make submission.csv from self.results
+        
+        Parameters :
+        - results : list(rles(str))
+        
+        Returns :
+        - dictionary which contains status 1
+        """
         classes, filename = zip(*[x[1].split("_") for x in self.results])
         image_name = [f for f in filename]
         

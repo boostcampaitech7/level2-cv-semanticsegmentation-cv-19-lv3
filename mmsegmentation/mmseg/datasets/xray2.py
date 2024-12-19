@@ -28,6 +28,12 @@ val_fold_num = 0
 
 @DATASETS.register_module()
 class XRayDataset2(BaseSegDataset):
+    """ Multi Label Segmentation task를 위해 Xray Dataset을 불러오기 위한 Dataset Class
+        Args:
+            is_train (bool) : train mode와 val mode일 때 group fold의  fold_num을 다르게 가져가기 위한 설정값
+            image_root (str) : 환자별 DCM이미지가 들어있는 directory
+            label_root (str) : 환자별 Segmentation mask json 파일이 들어있는 directory
+    """
     def __init__(self, 
                  is_train, 
                  image_root='/data/ephemeral/home/data/train/DCM',
@@ -107,6 +113,9 @@ class XRayDataset2(BaseSegDataset):
 
 @TRANSFORMS.register_module()
 class LoadXRayAnnotations(BaseTransform):
+    """ 
+    label json file path로부터 mask를 load해오기 위한 Transform Class
+    """
     def transform(self, result):
         label_path = result["seg_map_path"]
 
@@ -139,6 +148,10 @@ class LoadXRayAnnotations(BaseTransform):
     
 @TRANSFORMS.register_module()
 class TransposeAnnotations(BaseTransform):
+    """ 
+    segmentation map은 image가 tensor로 변환될 때 채널이 앞에 오도록 자동으로 바뀌지 않으므로, 
+    이를 적용해주기 위한 Transform Class 정의
+    """
     def transform(self, result):
         result["gt_seg_map"] = np.transpose(result["gt_seg_map"], (2, 0, 1))
         

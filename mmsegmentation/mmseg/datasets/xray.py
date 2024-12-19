@@ -5,6 +5,12 @@ import os.path as osp
 
 @DATASETS.register_module()
 class XRayDataset(BaseSegDataset):
+    """ cityscapes format으로 변환된 XRay Segmentation dataset을 불러오기 위한 Dataset Class
+        Args:
+            data_root (str) : cityscapes format 데이터셋이 위치한 root directory
+            data_prefix (str) : 사용할 이미지, mask json prefix
+            pipeline (List[:obj:`mmseg.registry.TRANSFORMS`]) : raw image, mask로부터 torch tensor로 로드하기까지의 pipeline list
+    """
     METAINFO = dict(
             classes = [
                 'finger-1', 'finger-2', 'finger-3', 'finger-4', 'finger-5',

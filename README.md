@@ -114,7 +114,13 @@ python test.py --config {path_to_your_config} --checkpoint {path_to_your_checkpo
 ```
 
 ## Module_base
+- yaml 파일로 hyperparameter 관리
 ```plaintext
+# train
+python train.py
+
+# inference
+python inference.py
 ```
 
 # 😄 Team Member
